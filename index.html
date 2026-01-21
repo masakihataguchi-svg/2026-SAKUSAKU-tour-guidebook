@@ -65,3 +65,48 @@
                     <p>夜のライトアップが綺麗。</p>
                     <a href="https://www.google.com/maps/search/?api=1&query=小樽運河" target="_blank" class="map-btn">Map</a>
                 </li>
+                <li class="spot-item">
+                    <strong>六花亭 札幌本店</strong>
+                    <p>サクサクパイは賞味期限3時間！</p>
+                    <a href="https://www.google.com/maps/search/?api=1&query=六花亭札幌本店" target="_blank" class="map-btn">Map</a>
+                </li>
+            </ul>
+        </div>
+
+        <div id="memo" class="tab-content">
+            
+            <div class="photo-upload-section">
+                <h3><i class="fas fa-camera"></i> 思い出アルバム</h3>
+                <p>旅の写真はここにアップロード！</p>
+                <a href="#" target="_blank" class="upload-btn">
+                    Googleフォトを開く
+                </a>
+            </div>
+
+            <hr>
+
+            <h2>持ち物チェック</h2>
+            <ul class="checklist">
+                <li><input type="checkbox"> 航空券 (eチケット)</li>
+                <li><input type="checkbox"> モバイルバッテリー</li>
+                <li><input type="checkbox"> 手袋・マフラー</li>
+                <li><input type="checkbox"> 滑り止め靴</li>
+            </ul>
+        </div>
+    </main>
+
+    <nav class="bottom-nav">
+        <button onclick="switchTab('schedule')" class="nav-btn active">
+            <i class="fas fa-calendar-alt"></i><br>日程
+        </button>
+        <button onclick="switchTab('spots')" class="nav-btn">
+            <i class="fas fa-search"></i><br>探す
+        </button>
+        <button onclick="switchTab('memo')" class="nav-btn">
+            <i class="fas fa-book-open"></i><br>メモ
+        </button>
+    </nav>
+
+    <script src="script.js"></script>
+</body>
+</html>
