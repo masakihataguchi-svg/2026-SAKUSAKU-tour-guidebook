@@ -3,7 +3,7 @@ let scheduleData = [];
 
 // --- 機能0: データ読み込み (Config -> CSV Fetch) ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: URL対応版★");
+    console.log("★最新版JS読み込み成功: スマートURL解析版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -23,24 +23,40 @@ async function loadSchedule() {
             const cleanRow = row.replace(/"/g, ''); 
             const columns = cleanRow.split(',');
 
-            // 列ズレ対策
+            // 日付の列を探す
             let timeIndex = 0;
             if (columns[1] && columns[1].indexOf('2026') > -1) {
                 timeIndex = 1; 
             }
-            // そもそもデータがおかしい場合はスキップ
             if (columns[timeIndex] === undefined || columns[timeIndex].indexOf('2026') === -1) {
                 return null;
             }
 
             const time = columns[timeIndex].trim();
             const title = columns[timeIndex + 1] ? columns[timeIndex + 1].trim() : "";
-            const detail = columns[timeIndex + 2] ? columns[timeIndex + 2].trim() : "";
             
-            // ★追加：4列目(D列)をURLとして取得
-            // カンマを含むURL対策で sliceを使うか、単純にindex指定するか。
-            // 念のため詳細メモ以降の結合ロジックから切り離して、index+3を狙い撃ちします。
-            const url = columns[timeIndex + 3] ? columns[timeIndex + 3].trim() : "";
+            // ★改良ポイント：詳細とURLを柔軟に探す
+            // タイトル以降の列をすべて取得
+            const remainingCols = columns.slice(timeIndex + 2);
+            
+            let foundUrl = "";
+            let detailParts = [];
+
+            remainingCols.forEach(col => {
+                const text = col.trim();
+                if (text === "") return; // 空ならスキップ
+
+                // "http" で始まればURLとみなす
+                if (text.startsWith("http://") || text.startsWith("https://")) {
+                    foundUrl = text;
+                } else {
+                    // それ以外は詳細メモとして扱う（結合する）
+                    detailParts.push(text);
+                }
+            });
+
+            const detail = detailParts.join(' '); // 結合して詳細文にする
+            const url = foundUrl;
             
             return { time: time, title: title, detail: detail, url: url };
         }).filter(item => item !== null);
@@ -86,9 +102,7 @@ function renderScheduleList() {
         const li = document.createElement('li');
         
         let detailHtml = item.detail ? `<br><span style="font-size:0.8em; color:#666;">${item.detail}</span>` : "";
-        
-        // リスト側にもリンクがあればアイコンを表示する（お好みで）
-        let linkIcon = item.url ? ` <a href="${item.url}" target="_blank" style="color:#0055a4;"><i class="fas fa-external-link-alt"></i></a>` : "";
+        let linkIcon = item.url ? ` <a href="${item.url}" target="_blank" style="color:#0055a4; margin-left:5px;"><i class="fas fa-external-link-alt"></i></a>` : "";
 
         li.innerHTML = `<span class="time">${timePart}</span> ${item.title}${linkIcon}${detailHtml}`;
         ul.appendChild(li);
@@ -104,7 +118,7 @@ function updateTimeKeeper() {
     const nextDetailDisplay = document.getElementById('next-detail');
     const timeRemainingDisplay = document.getElementById('time-remaining');
     const statusLabel = document.getElementById('status-label');
-    const nextLinkBtn = document.getElementById('next-link'); // ★追加
+    const nextLinkBtn = document.getElementById('next-link');
 
     if (!nextEventDisplay) return;
 
@@ -127,11 +141,10 @@ function updateTimeKeeper() {
         
         if (nextDetailDisplay) nextDetailDisplay.innerText = nextItem.detail || "";
 
-        // ★URLがあればボタンを表示、なければ非表示
+        // ★URLがあればボタンを表示
         if (nextItem.url && nextItem.url.startsWith('http')) {
             nextLinkBtn.href = nextItem.url;
             nextLinkBtn.style.display = "inline-block";
-            // URLの種類によって文言を変えるなど凝ることも可能ですが、一旦「リンクを開く」で統一
         } else {
             nextLinkBtn.style.display = "none";
         }
