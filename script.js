@@ -85,7 +85,7 @@ function renderScheduleList() {
     });
 }
 
-// --- 機能2: タイムキーパー (時間を追加) ---
+// --- 機能2: タイムキーパー (時間を頭に表示) ---
 function updateTimeKeeper() {
     if (scheduleData.length === 0) return;
 
@@ -111,10 +111,9 @@ function updateTimeKeeper() {
 
         statusLabel.innerText = "NEXT SCHEDULE";
         
-        // ★ここを変更：タイトル＋時間 を表示するようにしました
-        // nextItem.time は "2026/02/15 9:00" なので、空白で分割して後ろの "9:00" だけ取ります
+        // ★ここを変更： 時間 ＋ タイトル の順にしました
         const timeString = nextItem.time.split(' ')[1] || '';
-        nextEventDisplay.innerText = `${nextItem.title} ${timeString}`;
+        nextEventDisplay.innerText = `${timeString} ${nextItem.title}`;
         
         if (nextDetailDisplay) nextDetailDisplay.innerText = nextItem.detail || "";
 
