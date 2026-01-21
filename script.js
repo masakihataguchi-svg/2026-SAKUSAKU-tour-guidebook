@@ -3,7 +3,7 @@ let scheduleData = [];
 
 // --- 機能0: データ読み込み (Config -> CSV Fetch) ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功★");
+    console.log("★最新版JS読み込み成功: URL対応版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -23,19 +23,26 @@ async function loadSchedule() {
             const cleanRow = row.replace(/"/g, ''); 
             const columns = cleanRow.split(',');
 
+            // 列ズレ対策
             let timeIndex = 0;
             if (columns[1] && columns[1].indexOf('2026') > -1) {
                 timeIndex = 1; 
             }
+            // そもそもデータがおかしい場合はスキップ
             if (columns[timeIndex] === undefined || columns[timeIndex].indexOf('2026') === -1) {
                 return null;
             }
 
             const time = columns[timeIndex].trim();
             const title = columns[timeIndex + 1] ? columns[timeIndex + 1].trim() : "";
-            const detail = columns.slice(timeIndex + 2).join(',').trim();
+            const detail = columns[timeIndex + 2] ? columns[timeIndex + 2].trim() : "";
             
-            return { time: time, title: title, detail: detail };
+            // ★追加：4列目(D列)をURLとして取得
+            // カンマを含むURL対策で sliceを使うか、単純にindex指定するか。
+            // 念のため詳細メモ以降の結合ロジックから切り離して、index+3を狙い撃ちします。
+            const url = columns[timeIndex + 3] ? columns[timeIndex + 3].trim() : "";
+            
+            return { time: time, title: title, detail: detail, url: url };
         }).filter(item => item !== null);
 
         updateTimeKeeper();
@@ -44,8 +51,6 @@ async function loadSchedule() {
     } catch (error) {
         console.error("読込エラー:", error);
         document.getElementById('next-event').innerText = "読込エラー";
-        const detailElem = document.getElementById('next-detail');
-        if(detailElem) detailElem.innerText = error.message;
     }
 }
 
@@ -79,13 +84,18 @@ function renderScheduleList() {
 
         const ul = container.lastElementChild.querySelector('ul');
         const li = document.createElement('li');
+        
         let detailHtml = item.detail ? `<br><span style="font-size:0.8em; color:#666;">${item.detail}</span>` : "";
-        li.innerHTML = `<span class="time">${timePart}</span> ${item.title}${detailHtml}`;
+        
+        // リスト側にもリンクがあればアイコンを表示する（お好みで）
+        let linkIcon = item.url ? ` <a href="${item.url}" target="_blank" style="color:#0055a4;"><i class="fas fa-external-link-alt"></i></a>` : "";
+
+        li.innerHTML = `<span class="time">${timePart}</span> ${item.title}${linkIcon}${detailHtml}`;
         ul.appendChild(li);
     });
 }
 
-// --- 機能2: タイムキーパー (時間を頭に表示) ---
+// --- 機能2: タイムキーパー (URLボタン対応) ---
 function updateTimeKeeper() {
     if (scheduleData.length === 0) return;
 
@@ -94,6 +104,7 @@ function updateTimeKeeper() {
     const nextDetailDisplay = document.getElementById('next-detail');
     const timeRemainingDisplay = document.getElementById('time-remaining');
     const statusLabel = document.getElementById('status-label');
+    const nextLinkBtn = document.getElementById('next-link'); // ★追加
 
     if (!nextEventDisplay) return;
 
@@ -111,11 +122,19 @@ function updateTimeKeeper() {
 
         statusLabel.innerText = "NEXT SCHEDULE";
         
-        // ★ここを変更： 時間 ＋ タイトル の順にしました
         const timeString = nextItem.time.split(' ')[1] || '';
         nextEventDisplay.innerText = `${timeString} ${nextItem.title}`;
         
         if (nextDetailDisplay) nextDetailDisplay.innerText = nextItem.detail || "";
+
+        // ★URLがあればボタンを表示、なければ非表示
+        if (nextItem.url && nextItem.url.startsWith('http')) {
+            nextLinkBtn.href = nextItem.url;
+            nextLinkBtn.style.display = "inline-block";
+            // URLの種類によって文言を変えるなど凝ることも可能ですが、一旦「リンクを開く」で統一
+        } else {
+            nextLinkBtn.style.display = "none";
+        }
 
         if (diffDays > 0) {
             timeRemainingDisplay.innerText = `あと ${diffDays}日 ${diffHrs}時間`;
@@ -129,6 +148,7 @@ function updateTimeKeeper() {
         statusLabel.innerText = "INFORMATION";
         nextEventDisplay.innerText = "Enjoy Hokkaido!";
         if(nextDetailDisplay) nextDetailDisplay.innerText = "";
+        if(nextLinkBtn) nextLinkBtn.style.display = "none";
         timeRemainingDisplay.innerText = "全日程終了";
     }
 }
