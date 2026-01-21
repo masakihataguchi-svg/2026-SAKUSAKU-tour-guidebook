@@ -8,43 +8,56 @@ let scheduleData = [];
 // --- 機能0: データ読み込み (CSV Fetch) ---
 async function loadSchedule() {
     try {
-        const response = await fetch(SHEET_CSV_URL);
+        // キャッシュ対策：URLの末尾にランダムな数字をつけて毎回新しいデータを読み込む
+        const cacheBuster = "&t=" + new Date().getTime();
+        const response = await fetch(SHEET_CSV_URL + cacheBuster);
+        
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const text = await response.text();
         
+        const text = await response.text();
+        console.log("生のCSVデータ:", text); // デバッグ用
+
         // CSVをパースして配列にする
-        // 1行目はヘッダー(Time, Title, Detail)なので削除
+        // 1行目はヘッダーなので削除
         const rows = text.trim().split('\n').slice(1);
         
         scheduleData = rows.map(row => {
-            // カンマ区切りで配列化
-            const columns = row.split(',');
+            // 空行はスキップ
+            if (!row || row.trim() === "") return null;
+
+            // ★修正ポイント：データに含まれるダブルクォーテーション(")を削除
+            // スプレッドシートの仕様で "2026/02/14..." のように囲まれることがあるため
+            const cleanRow = row.replace(/"/g, ''); 
+            
+            const columns = cleanRow.split(',');
             
             // 1列目: 時間
             const time = columns[0].trim();
             
             // 2列目: タイトル
-            // (もしデータがなければ空文字)
             const title = columns[1] ? columns[1].trim() : "";
             
             // 3列目: 詳細メモ (乗り換え情報など)
-            // ※もしメモの中にカンマが含まれていた場合の対策として、
-            // 2列目以降をすべて結合してメモとして扱うようにしています。
+            // カンマが含まれていた場合の対策として結合
             const detail = columns.slice(2).join(',').trim();
             
-            return { time: time, title: title, detail: detail };
-        });
+            // デバッグ用：日付が正しく認識されているかチェック
+            if (isNaN(new Date(time).getTime())) {
+                console.warn("日付として認識できませんでした:", time);
+            }
 
-        console.log("スケジュール読み込み完了:", scheduleData);
-        // 読み込み終わったら画面更新
+            return { time: time, title: title, detail: detail };
+        }).filter(item => item !== null); // null（空行）を除外
+
+        console.log("変換後のスケジュール:", scheduleData);
         updateTimeKeeper();
 
     } catch (error) {
         console.error("スケジュールの読み込みに失敗しました:", error);
-        document.getElementById('next-event').innerText = "読込エラー";
-        document.getElementById('next-detail').innerText = "通信環境を確認してください";
+        document.getElementById('next-event').innerText = "データ読込エラー";
+        document.getElementById('next-detail').innerText = "URLを確認してください";
     }
 }
 
@@ -86,7 +99,6 @@ function filterSpots() {
 
 // --- 機能3: タイムキーパー (詳細情報対応版) ---
 function updateTimeKeeper() {
-    // データ未取得なら何もしない
     if (scheduleData.length === 0) return;
 
     const now = new Date();
@@ -98,7 +110,6 @@ function updateTimeKeeper() {
     if (!nextEventDisplay) return;
 
     // 未来の予定を検索
-    // 日付変換して比較 (iPhone/Safari互換性のためDateパースに注意)
     const nextItem = scheduleData.find(item => {
         return new Date(item.time).getTime() > now.getTime();
     });
@@ -107,21 +118,19 @@ function updateTimeKeeper() {
         const eventTime = new Date(nextItem.time);
         const diffMs = eventTime - now; 
         
-        // 残り時間の計算
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
         const diffHrs = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
-        // 画面表示
         statusLabel.innerText = "NEXT SCHEDULE";
         nextEventDisplay.innerText = nextItem.title;
         
-        // ★詳細メモがあれば表示
+        // 詳細メモを表示
         if (nextDetailDisplay) {
             nextDetailDisplay.innerText = nextItem.detail || "";
         }
 
-        // カウントダウン表示の分岐
+        // カウントダウン表示
         if (diffDays > 0) {
             timeRemainingDisplay.innerText = `あと ${diffDays}日 ${diffHrs}時間`;
             timeRemainingDisplay.style.color = "white";
@@ -130,7 +139,6 @@ function updateTimeKeeper() {
             timeRemainingDisplay.style.color = "white";
         } else {
             timeRemainingDisplay.innerText = `あと ${diffMins}分！`;
-            // 30分切ったら赤くするなどの演出
             timeRemainingDisplay.style.color = (diffMins < 30) ? "#ff4444" : "#ffd700";
         }
     } else {
@@ -144,9 +152,6 @@ function updateTimeKeeper() {
 
 // --- 起動処理 ---
 document.addEventListener('DOMContentLoaded', function() {
-    // 起動時にデータを読み込みに行く
     loadSchedule();
-    
-    // 1分ごとに表示更新
     setInterval(updateTimeKeeper, 60000);
 });
