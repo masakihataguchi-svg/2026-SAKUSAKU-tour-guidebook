@@ -3,26 +3,19 @@ let scheduleData = [];
 
 // --- 機能0: データ読み込み (Config -> CSV Fetch) ---
 async function loadSchedule() {
+    console.log("★最新版JS読み込み成功★");
     try {
-        // ステップ1: 設定ファイル(config.json)からURLを取得
-        // ※キャッシュ対策で時刻パラメータを付与
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
         
         const config = await configResp.json();
         const sheetUrl = config.sheetUrl;
 
-        if (!sheetUrl) throw new Error("URLが設定されていません");
-
-        // ステップ2: 取得したURLを使ってCSVデータを取得
         const csvResp = await fetch(sheetUrl + "&t=" + new Date().getTime());
         if (!csvResp.ok) throw new Error(`CSV読込エラー: ${csvResp.status}`);
         
         const text = await csvResp.text();
-        console.log("Raw CSV:", text.substring(0, 100) + "..."); 
-
-        // CSVパース処理
-        const rows = text.trim().split('\n').slice(1);
+        const rows = text.trim().split('\n');
         
         scheduleData = rows.map(row => {
             if (!row || row.trim() === "") return null;
@@ -30,28 +23,27 @@ async function loadSchedule() {
             const cleanRow = row.replace(/"/g, ''); 
             const columns = cleanRow.split(',');
 
-            // 列ズレ対策
             let timeIndex = 0;
             if (columns[1] && columns[1].indexOf('2026') > -1) {
                 timeIndex = 1; 
             }
+            if (columns[timeIndex] === undefined || columns[timeIndex].indexOf('2026') === -1) {
+                return null;
+            }
 
-            const time = columns[timeIndex] ? columns[timeIndex].trim() : "";
+            const time = columns[timeIndex].trim();
             const title = columns[timeIndex + 1] ? columns[timeIndex + 1].trim() : "";
             const detail = columns.slice(timeIndex + 2).join(',').trim();
             
             return { time: time, title: title, detail: detail };
-        }).filter(item => item !== null && item.time.indexOf('2026') > -1);
+        }).filter(item => item !== null);
 
-        console.log("Parsed Data:", scheduleData);
-        
         updateTimeKeeper();
         renderScheduleList(); 
 
     } catch (error) {
         console.error("読込エラー:", error);
         document.getElementById('next-event').innerText = "読込エラー";
-        // エラー内容を詳細エリアに表示（デバッグしやすくするため）
         const detailElem = document.getElementById('next-detail');
         if(detailElem) detailElem.innerText = error.message;
     }
@@ -93,7 +85,7 @@ function renderScheduleList() {
     });
 }
 
-// --- 機能2: タイムキーパー ---
+// --- 機能2: タイムキーパー (時間を追加) ---
 function updateTimeKeeper() {
     if (scheduleData.length === 0) return;
 
@@ -118,7 +110,12 @@ function updateTimeKeeper() {
         const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
         statusLabel.innerText = "NEXT SCHEDULE";
-        nextEventDisplay.innerText = nextItem.title;
+        
+        // ★ここを変更：タイトル＋時間 を表示するようにしました
+        // nextItem.time は "2026/02/15 9:00" なので、空白で分割して後ろの "9:00" だけ取ります
+        const timeString = nextItem.time.split(' ')[1] || '';
+        nextEventDisplay.innerText = `${nextItem.title} ${timeString}`;
+        
         if (nextDetailDisplay) nextDetailDisplay.innerText = nextItem.detail || "";
 
         if (diffDays > 0) {
