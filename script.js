@@ -1,5 +1,5 @@
 // --- 設定：スケジュールデータ ---
-// 日付形式: YYYY-MM-DD HH:MM
+// 日付形式: YYYY/MM/DD HH:MM
 const scheduleData = [
     { time: '2026/02/14 10:00', title: '🛬 新千歳空港 到着' },
     { time: '2026/02/14 13:00', title: '🍛 ランチ：スープカレー' },
