@@ -1,5 +1,5 @@
 // --- 設定：スケジュールデータ ---
-// 日付形式: YYYY/MM/DD HH:MM
+// 【重要】iPhone対応のため、日付は「/」スラッシュ区切りにします
 const scheduleData = [
     { time: '2026/02/14 10:00', title: '🛬 新千歳空港 到着' },
     { time: '2026/02/14 13:00', title: '🍛 ランチ：スープカレー' },
@@ -12,16 +12,25 @@ const scheduleData = [
 
 // --- 機能1: タブ切り替え ---
 function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(content => {
+    // コンテンツの切り替え
+    const contents = document.querySelectorAll('.tab-content');
+    contents.forEach(content => {
         content.classList.remove('active');
     });
-    document.getElementById(tabId).classList.add('active');
+    const target = document.getElementById(tabId);
+    if (target) {
+        target.classList.add('active');
+    }
 
-    document.querySelectorAll('.nav-btn').forEach(btn => {
+    // ボタンのスタイル切り替え
+    const buttons = document.querySelectorAll('.nav-btn');
+    buttons.forEach(btn => {
         btn.classList.remove('active');
     });
-    // eventが存在する場合のみクラス付与
-    if(event && event.currentTarget) {
+    
+    // クリックされたボタンをactiveにする
+    // (eventが取得できる場合のみ実行する安全策)
+    if(typeof event !== 'undefined' && event.currentTarget) {
         event.currentTarget.classList.add('active');
     }
 }
@@ -29,6 +38,8 @@ function switchTab(tabId) {
 // --- 機能2: スポット検索 ---
 function filterSpots() {
     const input = document.getElementById('searchBox');
+    if (!input) return; // エラー防止
+    
     const filter = input.value.toUpperCase();
     const ul = document.getElementById('spotList');
     const li = ul.getElementsByTagName('li');
@@ -50,9 +61,14 @@ function updateTimeKeeper() {
     const timeRemainingDisplay = document.getElementById('time-remaining');
     const statusLabel = document.getElementById('status-label');
 
+    // 要素が見つからない場合は処理を中断（エラー防止）
+    if (!nextEventDisplay || !timeRemainingDisplay || !statusLabel) return;
+
     // 未来の予定を検索
-    // 日付比較のためDateオブジェクトに変換して比較
-    const nextItem = scheduleData.find(item => new Date(item.time) > now);
+    // 日付変換の互換性を高める記述
+    const nextItem = scheduleData.find(item => {
+        return new Date(item.time).getTime() > now.getTime();
+    });
 
     if (nextItem) {
         const eventTime = new Date(nextItem.time);
@@ -83,6 +99,10 @@ function updateTimeKeeper() {
     }
 }
 
-// 1分ごとに更新＆初回実行
-setInterval(updateTimeKeeper, 60000);
-updateTimeKeeper();
+// 起動時に即実行
+document.addEventListener('DOMContentLoaded', function() {
+    updateTimeKeeper();
+    setInterval(updateTimeKeeper, 60000);
+});
+// 念のためウィンドウ読み込み後にも実行
+window.onload = updateTimeKeeper;
