@@ -1,6 +1,6 @@
 // --- 設定：GoogleスプレッドシートのCSV URL ---
 // ↓ここに取得した「ウェブに公開」のCSV用URLを貼り付けてください
-const SHEET_CSV_URL = "ここにURLを貼り付け";
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSEI2TbAdBCeEoyKBiEhsz_6AdRKxFsllpgsVzTUuzQ6xENSRpohdZiXQYQdQ-JmGwyGwL8FkmqRPdF/pub?gid=0&single=true&output=csv";
 
 // スケジュールデータを格納する変数
 let scheduleData = [];
