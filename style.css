@@ -1,0 +1,175 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Yu Gothic", sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f8ff;
+    color: #333;
+    padding-bottom: 90px; /* ナビゲーションの分 */
+    -webkit-text-size-adjust: 100%;
+}
+
+header {
+    background-color: #0055a4;
+    color: white;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* タイムキーパー */
+.time-keeper-box {
+    background: linear-gradient(135deg, #0055a4, #0088cc);
+    color: white;
+    padding: 20px;
+    text-align: center;
+    margin: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+#status-label {
+    font-size: 0.75em;
+    opacity: 0.9;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+#next-event {
+    margin: 5px 0;
+    font-size: 1.3em;
+    font-weight: bold;
+}
+
+#time-remaining {
+    font-size: 1.1em;
+    color: #ffd700;
+    font-weight: bold;
+    margin: 0;
+}
+
+/* コンテンツエリア */
+.tab-content {
+    display: none;
+    padding: 0 15px;
+    animation: fadeIn 0.3s;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* カードスタイル */
+.day-card, .spot-item, .photo-upload-section {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* タイムライン */
+.timeline ul {
+    list-style: none;
+    padding: 0;
+}
+.timeline li {
+    margin-bottom: 8px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+.time {
+    font-weight: bold;
+    color: #0055a4;
+    display: inline-block;
+    width: 50px;
+}
+
+/* スポット検索 */
+#searchBox {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 16px; /* iOSでズーム防止 */
+}
+
+.map-btn, .upload-btn {
+    display: inline-block;
+    text-decoration: none;
+    text-align: center;
+    border-radius: 6px;
+    margin-top: 10px;
+}
+
+.map-btn {
+    background-color: #e74c3c;
+    color: white;
+    padding: 6px 12px;
+    font-size: 0.9em;
+}
+
+/* 写真アップロードボタン */
+.upload-btn {
+    background-color: #34a853; /* Google Photos Green */
+    color: white;
+    padding: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    font-weight: bold;
+}
+
+/* ボトムナビ */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: white;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0 25px 0; /* iPhone X対応 */
+    border-top: 1px solid #eee;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    z-index: 1000;
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    font-size: 0.7em;
+    color: #999;
+    cursor: pointer;
+    width: 33%;
+}
+
+.nav-btn.active {
+    color: #0055a4;
+    font-weight: bold;
+}
+
+.nav-btn i {
+    font-size: 1.6em;
+    margin-bottom: 4px;
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* チェックリスト */
+.checklist {
+    list-style: none;
+    padding: 0;
+}
+.checklist li {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 1.1em;
+}
+.checklist input {
+    transform: scale(1.5);
+    margin-right: 10px;
+}

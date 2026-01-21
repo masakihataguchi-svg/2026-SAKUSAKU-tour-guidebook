@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>北海道旅行 2026</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/64/64572.png">
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <header>
+        <h1><i class="fas fa-snowflake"></i> Hokkaido 2026</h1>
+    </header>
+
+    <div id="time-keeper" class="time-keeper-box">
+        <div class="current-status">
+            <span id="status-label">NEXT ACTION</span>
+            <h2 id="next-event">ロード中...</h2>
+            <p id="time-remaining">--:--</p>
+        </div>
+    </div>
+
+    <main id="content-area">
+        
+        <div id="schedule" class="tab-content active">
+            <h2><i class="fas fa-calendar-alt"></i> 日程表</h2>
+            <div class="timeline">
+                <div class="day-card">
+                    <h3>Day 1 (2/14)</h3>
+                    <ul>
+                        <li><span class="time">10:00</span> 新千歳空港着</li>
+                        <li><span class="time">12:00</span> レンタカー手続き</li>
+                        <li><span class="time">13:00</span> ランチ：スープカレー</li>
+                        <li><span class="time">18:00</span> サッポロビール園</li>
+                    </ul>
+                </div>
+                <div class="day-card">
+                    <h3>Day 2 (2/15)</h3>
+                    <ul>
+                        <li><span class="time">09:00</span> ホテル出発</li>
+                        <li><span class="time">10:30</span> 小樽運河・散策</li>
+                        <li><span class="time">12:00</span> お寿司ランチ</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="spots" class="tab-content">
+            <h2><i class="fas fa-map-marked-alt"></i> スポットリスト</h2>
+            <input type="text" id="searchBox" placeholder="場所名で検索..." onkeyup="filterSpots()">
+            <ul id="spotList">
+                <li class="spot-item">
+                    <strong>ジンギスカンだるま</strong>
+                    <p>混雑必至。防寒対策して並ぶ。</p>
+                    <a href="https://www.google.com/maps/search/?api=1&query=ジンギスカンだるま" target="_blank" class="map-btn">Map</a>
+                </li>
+                <li class="spot-item">
+                    <strong>小樽運河</strong>
+                    <p>夜のライトアップが綺麗。</p>
+                    <a href="https://www.google.com/maps/search/?api=1&query=小樽運河" target="_blank" class="map-btn">Map</a>
+                </li>

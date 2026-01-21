@@ -1,0 +1,21 @@
+{
+  "name": "北海道旅行 2026",
+  "short_name": "北海道旅",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f0f8ff",
+  "theme_color": "#0055a4",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/64/64572.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/64/64572.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
