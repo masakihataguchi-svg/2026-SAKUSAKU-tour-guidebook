@@ -25,8 +25,8 @@ header {
     margin: 15px;
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    position: relative; /* 矢印の配置基準 */
-    overflow: hidden; /* はみ出し防止 */
+    position: relative;
+    overflow: hidden;
 }
 
 /* スワイプナビゲーション矢印 */
@@ -54,9 +54,9 @@ header {
 
 /* スワイプエリア */
 #swipe-area {
-    touch-action: pan-y; /* 縦スクロールはブラウザに任せ、横操作はJSで取る */
-    min-height: 300px;   /* 高さを確保してガタつき防止 */
-    padding: 0 20px;     /* 矢印と被らないように余白 */
+    touch-action: pan-y;
+    min-height: 300px;
+    padding: 0 20px;
 }
 
 /* カード切り替え時のフェードインアニメーション */
@@ -80,20 +80,38 @@ header {
 
 /* 情報ブロック共通スタイル */
 .info-block {
-    background-color: rgba(255, 255, 255, 0.1); /* 半透明の背景 */
-    border: 1px solid rgba(255, 255, 255, 0.3); /* 薄い枠線 */
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 8px;
     padding: 15px;
     margin-bottom: 15px;
 }
 
-/* スケジュールブロック */
+/* ★変更点：スケジュールのレイアウト調整 */
 .schedule-block h2 {
     margin: 0 0 10px 0;
-    font-size: 1.8em;
-    font-weight: bold;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    /* font-size指定を削除し、中のspanクラスで制御します */
+    line-height: 1.1; /* 行間を少し詰める */
 }
+
+/* ★追加：時間のスタイル (大きく表示) */
+.event-time {
+    display: block; /* 改行させる */
+    font-size: 2.8em; /* 非常に大きく */
+    font-weight: 800;
+    margin-bottom: 5px;
+    letter-spacing: 1px;
+}
+
+/* ★追加：タイトルのスタイル */
+.event-title {
+    display: block;
+    font-size: 1.4em;
+    font-weight: bold;
+    word-wrap: break-word; /* 長い単語も折り返す */
+    line-height: 1.3;
+}
+
 .schedule-block p {
     font-size: 1.1em;
     font-weight: bold;
@@ -114,11 +132,11 @@ header {
 }
 
 .event-link-btn {
-    display: block; /* 幅いっぱい */
+    display: block;
     margin-top: 5px;
     padding: 12px;
     background-color: white;
-    color: #0055a4; /* 文字色を青に */
+    color: #0055a4;
     text-decoration: none;
     border-radius: 6px;
     font-size: 1.1em;
@@ -152,7 +170,7 @@ header {
     text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-/* --- 画像拡大モーダル (ライトボックス) --- */
+/* --- 画像拡大モーダル --- */
 .modal {
     display: none; 
     position: fixed; 
@@ -171,7 +189,7 @@ header {
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: auto; /* 拡大時にスクロール可能にする */
+    overflow: auto;
 }
 
 .modal-content {
@@ -181,11 +199,10 @@ header {
     transition: transform 0.2s;
 }
 
-/* ズーム状態のクラス */
 .modal-content.zoomed {
     max-width: none;
     max-height: none;
-    width: 200%; /* 2倍に拡大 */
+    width: 200%;
     cursor: grab;
 }
 
