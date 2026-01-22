@@ -3,7 +3,7 @@ let scheduleData = [];
 
 // --- 機能0: データ読み込み (Config -> CSV Fetch) ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: スマートURL解析版★");
+    console.log("★最新版JS読み込み成功: 7列対応版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -20,45 +20,45 @@ async function loadSchedule() {
         scheduleData = rows.map(row => {
             if (!row || row.trim() === "") return null;
             
+            // ダブルクォーテーションを除去してカンマ分割
             const cleanRow = row.replace(/"/g, ''); 
             const columns = cleanRow.split(',');
 
-            // 日付の列を探す
-            let timeIndex = 0;
+            // --- 列の特定ロジック ---
+            // A列(0)に行番号が入ってズレる現象対策のため、
+            // 「2026」が含まれる列を基準(Time列)として、相対的に他の列を取得します。
+            let tIdx = 0;
             if (columns[1] && columns[1].indexOf('2026') > -1) {
-                timeIndex = 1; 
+                tIdx = 1; 
             }
-            if (columns[timeIndex] === undefined || columns[timeIndex].indexOf('2026') === -1) {
+            if (columns[tIdx] === undefined || columns[tIdx].indexOf('2026') === -1) {
                 return null;
             }
 
-            const time = columns[timeIndex].trim();
-            const title = columns[timeIndex + 1] ? columns[timeIndex + 1].trim() : "";
+            // --- データのマッピング (新しい列定義) ---
+            // Base: Time列 (tIdx)
+            // +1: Title
+            // +2: Detail
+            // +3: Web説明
+            // +4: Web URL
+            // +5: 画像説明
+            // +6: 画像URL
             
-            // ★改良ポイント：詳細とURLを柔軟に探す
-            // タイトル以降の列をすべて取得
-            const remainingCols = columns.slice(timeIndex + 2);
+            const time = columns[tIdx].trim();
+            const title = columns[tIdx + 1] ? columns[tIdx + 1].trim() : "";
+            const detail = columns[tIdx + 2] ? columns[tIdx + 2].trim() : "";
             
-            let foundUrl = "";
-            let detailParts = [];
-
-            remainingCols.forEach(col => {
-                const text = col.trim();
-                if (text === "") return; // 空ならスキップ
-
-                // "http" で始まればURLとみなす
-                if (text.startsWith("http://") || text.startsWith("https://")) {
-                    foundUrl = text;
-                } else {
-                    // それ以外は詳細メモとして扱う（結合する）
-                    detailParts.push(text);
-                }
-            });
-
-            const detail = detailParts.join(' '); // 結合して詳細文にする
-            const url = foundUrl;
+            const webDesc = columns[tIdx + 3] ? columns[tIdx + 3].trim() : "";
+            const webUrl  = columns[tIdx + 4] ? columns[tIdx + 4].trim() : "";
             
-            return { time: time, title: title, detail: detail, url: url };
+            const imgDesc = columns[tIdx + 5] ? columns[tIdx + 5].trim() : "";
+            const imgUrl  = columns[tIdx + 6] ? columns[tIdx + 6].trim() : "";
+            
+            return { 
+                time, title, detail, 
+                webDesc, webUrl, 
+                imgDesc, imgUrl 
+            };
         }).filter(item => item !== null);
 
         updateTimeKeeper();
@@ -102,29 +102,49 @@ function renderScheduleList() {
         const li = document.createElement('li');
         
         let detailHtml = item.detail ? `<br><span style="font-size:0.8em; color:#666;">${item.detail}</span>` : "";
-        let linkIcon = item.url ? ` <a href="${item.url}" target="_blank" style="color:#0055a4; margin-left:5px;"><i class="fas fa-external-link-alt"></i></a>` : "";
+        
+        // リスト側にもリンクアイコンを出す（Web URLがある場合）
+        let linkIcon = "";
+        if (item.webUrl && item.webUrl.startsWith('http')) {
+            linkIcon = ` <a href="${item.webUrl}" target="_blank" style="color:#0055a4; margin-left:5px;"><i class="fas fa-external-link-alt"></i></a>`;
+        }
 
         li.innerHTML = `<span class="time">${timePart}</span> ${item.title}${linkIcon}${detailHtml}`;
         ul.appendChild(li);
     });
 }
 
-// --- 機能2: タイムキーパー (URLボタン対応) ---
+// --- 機能2: タイムキーパー (Web/画像 分離対応) ---
 function updateTimeKeeper() {
     if (scheduleData.length === 0) return;
 
     const now = new Date();
+    
+    // 要素の取得
     const nextEventDisplay = document.getElementById('next-event');
     const nextDetailDisplay = document.getElementById('next-detail');
     const timeRemainingDisplay = document.getElementById('time-remaining');
     const statusLabel = document.getElementById('status-label');
-    const nextLinkBtn = document.getElementById('next-link');
+    
+    const webContainer = document.getElementById('web-link-container');
+    const webDescDisplay = document.getElementById('web-desc');
+    const webLinkBtn = document.getElementById('web-link-btn');
+    const webLinkText = document.getElementById('web-link-text');
+
+    const imageContainer = document.getElementById('image-container');
+    const imageDescDisplay = document.getElementById('image-desc');
+    const mediaContent = document.getElementById('media-content');
 
     if (!nextEventDisplay) return;
 
     const nextItem = scheduleData.find(item => {
         return new Date(item.time).getTime() > now.getTime();
     });
+
+    // --- 表示のリセット ---
+    webContainer.style.display = "none";
+    imageContainer.style.display = "none";
+    mediaContent.innerHTML = "";
 
     if (nextItem) {
         const eventTime = new Date(nextItem.time);
@@ -135,20 +155,37 @@ function updateTimeKeeper() {
         const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
         statusLabel.innerText = "NEXT SCHEDULE";
-        
         const timeString = nextItem.time.split(' ')[1] || '';
         nextEventDisplay.innerText = `${timeString} ${nextItem.title}`;
-        
-        if (nextDetailDisplay) nextDetailDisplay.innerText = nextItem.detail || "";
+        nextDetailDisplay.innerText = nextItem.detail || "";
 
-        // ★URLがあればボタンを表示
-        if (nextItem.url && nextItem.url.startsWith('http')) {
-            nextLinkBtn.href = nextItem.url;
-            nextLinkBtn.style.display = "inline-block";
-        } else {
-            nextLinkBtn.style.display = "none";
+        // ★Web URLの処理
+        if (nextItem.webUrl && nextItem.webUrl.startsWith('http')) {
+            webContainer.style.display = "block";
+            webLinkBtn.href = nextItem.webUrl;
+            // 説明があればそれをボタン名に、なければ「リンクを開く」
+            webDescDisplay.innerText = nextItem.webDesc || ""; 
+            webLinkText.innerText = nextItem.webDesc ? "Webサイトを開く" : "リンクを開く";
         }
 
+        // ★画像の処理
+        if (nextItem.imgUrl && nextItem.imgUrl.startsWith('http')) {
+            imageContainer.style.display = "block";
+            imageDescDisplay.innerText = nextItem.imgDesc || "";
+
+            // Googleドライブ判定
+            const driveMatch = nextItem.imgUrl.match(/\/d\/(.+?)\//);
+            let imgSrc = nextItem.imgUrl;
+            
+            if (driveMatch) {
+                const fileId = driveMatch[1];
+                imgSrc = `https://drive.google.com/uc?export=view&id=${fileId}`;
+            }
+
+            mediaContent.innerHTML = `<img src="${imgSrc}" class="event-image" alt="Event Image">`;
+        }
+
+        // カウントダウン
         if (diffDays > 0) {
             timeRemainingDisplay.innerText = `あと ${diffDays}日 ${diffHrs}時間`;
         } else if (diffHrs > 0) {
@@ -160,22 +197,18 @@ function updateTimeKeeper() {
     } else {
         statusLabel.innerText = "INFORMATION";
         nextEventDisplay.innerText = "Enjoy Hokkaido!";
-        if(nextDetailDisplay) nextDetailDisplay.innerText = "";
-        if(nextLinkBtn) nextLinkBtn.style.display = "none";
+        nextDetailDisplay.innerText = "";
         timeRemainingDisplay.innerText = "全日程終了";
     }
 }
 
-// --- 機能3: タブ切り替え ---
+// --- 機能3〜起動処理（変更なし） ---
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
-    
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     if(typeof event !== 'undefined' && event.currentTarget) event.currentTarget.classList.add('active');
 }
-
-// --- 機能4: スポット検索 ---
 function filterSpots() {
     const input = document.getElementById('searchBox');
     if (!input) return;
@@ -186,8 +219,6 @@ function filterSpots() {
         li[i].style.display = (text.toUpperCase().indexOf(filter) > -1) ? "" : "none";
     }
 }
-
-// --- 起動処理 ---
 document.addEventListener('DOMContentLoaded', function() {
     loadSchedule();
     setInterval(updateTimeKeeper, 60000);
