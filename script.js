@@ -1,9 +1,13 @@
 // スケジュールデータを格納する変数
 let scheduleData = [];
+// 現在表示しているカードのインデックス番号
+let displayIndex = 0;
+// 自動更新モードかどうかのフラグ（スワイプしたらfalseになる）
+let isAutoMode = true;
 
-// --- 機能0: データ読み込み (Config -> CSV Fetch) ---
+// --- 機能0: データ読み込み ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: モーダル対応版★");
+    console.log("★最新版JS読み込み成功: スワイプ対応版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -19,18 +23,12 @@ async function loadSchedule() {
         
         scheduleData = rows.map(row => {
             if (!row || row.trim() === "") return null;
-            
             const cleanRow = row.replace(/"/g, ''); 
             const columns = cleanRow.split(',');
 
-            // 列の特定ロジック
             let tIdx = 0;
-            if (columns[1] && columns[1].indexOf('2026') > -1) {
-                tIdx = 1; 
-            }
-            if (columns[tIdx] === undefined || columns[tIdx].indexOf('2026') === -1) {
-                return null;
-            }
+            if (columns[1] && columns[1].indexOf('2026') > -1) tIdx = 1; 
+            if (columns[tIdx] === undefined || columns[tIdx].indexOf('2026') === -1) return null;
 
             const time = columns[tIdx].trim();
             const title = columns[tIdx + 1] ? columns[tIdx + 1].trim() : "";
@@ -43,8 +41,19 @@ async function loadSchedule() {
             return { time, title, detail, webDesc, webUrl, imgDesc, imgUrl };
         }).filter(item => item !== null);
 
+        // 初期表示位置を決定（現在時刻に一番近い未来の予定）
+        const now = new Date();
+        const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime());
+        
+        if (nextIdx !== -1) {
+            displayIndex = nextIdx;
+        } else {
+            displayIndex = scheduleData.length - 1; // 全部終わってたら最後を表示
+        }
+
         updateTimeKeeper();
         renderScheduleList(); 
+        setupSwipe(); // ★スワイプ機能の有効化
 
     } catch (error) {
         console.error("読込エラー:", error);
@@ -58,22 +67,19 @@ function renderScheduleList() {
     if (!container || scheduleData.length === 0) return;
 
     container.innerHTML = '';
-
     let currentDayStr = "";
     const firstDateObj = new Date(scheduleData[0].time.split(' ')[0]);
 
-    scheduleData.forEach(item => {
+    scheduleData.forEach((item, index) => {
         const datePart = item.time.split(' ')[0];
         const timePart = item.time.split(' ')[1] || "";
 
         if (datePart !== currentDayStr) {
             currentDayStr = datePart;
-            
             const thisDateObj = new Date(datePart);
             const diffTime = Math.abs(thisDateObj - firstDateObj);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
             const formattedDate = `${thisDateObj.getMonth() + 1}/${thisDateObj.getDate()}`;
-
             const dayCard = document.createElement('div');
             dayCard.className = 'day-card';
             dayCard.innerHTML = `<h3>Day ${diffDays} (${formattedDate})</h3><ul></ul>`;
@@ -82,132 +88,192 @@ function renderScheduleList() {
 
         const ul = container.lastElementChild.querySelector('ul');
         const li = document.createElement('li');
-        
-        let detailHtml = item.detail ? `<br><span style="font-size:0.8em; color:#666;">${item.detail}</span>` : "";
         let linkIcon = "";
         if (item.webUrl && item.webUrl.startsWith('http')) {
             linkIcon = ` <a href="${item.webUrl}" target="_blank" style="color:#0055a4; margin-left:5px;"><i class="fas fa-external-link-alt"></i></a>`;
         }
-
-        li.innerHTML = `<span class="time">${timePart}</span> ${item.title}${linkIcon}${detailHtml}`;
+        
+        // リストをクリックしてもそのカードに飛べるようにする
+        li.innerHTML = `<span class="time">${timePart}</span> ${item.title}${linkIcon}`;
+        li.onclick = () => jumpToCard(index); // クリックでジャンプ
+        li.style.cursor = "pointer";
+        
         ul.appendChild(li);
     });
 }
 
-// --- 機能2: タイムキーパー (3ブロック & モーダル対応) ---
+// --- 機能2: タイムキーパー (スワイプ対応版) ---
 function updateTimeKeeper() {
     if (scheduleData.length === 0) return;
 
+    // 表示すべきデータ
+    const item = scheduleData[displayIndex];
+    if (!item) return;
+
     const now = new Date();
+    const eventTime = new Date(item.time);
+    const diffMs = eventTime - now; 
     
-    // 要素の取得
+    // UI要素取得
+    const statusLabel = document.getElementById('status-label');
     const nextEventDisplay = document.getElementById('next-event');
     const nextDetailDisplay = document.getElementById('next-detail');
     const timeRemainingDisplay = document.getElementById('time-remaining');
-    
-    // Webブロック
+    const cardCounter = document.getElementById('card-counter');
+
     const webContainer = document.getElementById('web-link-container');
     const webDescDisplay = document.getElementById('web-desc');
     const webLinkBtn = document.getElementById('web-link-btn');
     const webLinkText = document.getElementById('web-link-text');
 
-    // 画像ブロック
     const imageContainer = document.getElementById('image-container');
     const imageDescDisplay = document.getElementById('image-desc');
     const mediaContent = document.getElementById('media-content');
-
-    if (!nextEventDisplay) return;
-
-    const nextItem = scheduleData.find(item => {
-        return new Date(item.time).getTime() > now.getTime();
-    });
 
     // 初期化
     webContainer.style.display = "none";
     imageContainer.style.display = "none";
     mediaContent.innerHTML = "";
 
-    if (nextItem) {
-        const eventTime = new Date(nextItem.time);
-        const diffMs = eventTime - now; 
-        
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        const diffHrs = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-        // 1. スケジュール情報
-        const timeString = nextItem.time.split(' ')[1] || '';
-        nextEventDisplay.innerText = `${timeString} ${nextItem.title}`;
-        nextDetailDisplay.innerText = nextItem.detail || "";
-
-        // 2. Web情報
-        if (nextItem.webUrl && nextItem.webUrl.startsWith('http')) {
-            webContainer.style.display = "block";
-            webLinkBtn.href = nextItem.webUrl;
-            webDescDisplay.innerText = nextItem.webDesc || "Webサイト";
-            webLinkText.innerText = "Webサイトを開く";
-        }
-
-        // 3. 画像情報
-        if (nextItem.imgUrl && nextItem.imgUrl.startsWith('http')) {
-            imageContainer.style.display = "block";
-            imageDescDisplay.innerText = nextItem.imgDesc || "画像情報";
-
-            // Googleドライブ判定
-            const driveMatch = nextItem.imgUrl.match(/\/d\/(.+?)\//);
-            let imgSrc = nextItem.imgUrl;
-            if (driveMatch) {
-                // ★修正：Safari対応のため、GoogleのサムネイルAPIを使用します
-                // sz=s4000 は「長辺4000px」の意味。これで高画質のまま表示できます。
-                imgSrc = `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=s4000`;
-            }
-
-            // 画像生成 (クリックでモーダルを開くイベント追加)
-            // onclickで openModal を呼び出し、引数に画像のURLと説明を渡す
-            mediaContent.innerHTML = `<img src="${imgSrc}" class="event-image" alt="Event Image" onclick="openModal('${imgSrc}', '${nextItem.imgDesc}')">`;
-        }
-
-        // カウントダウン
-        if (diffDays > 0) {
-            timeRemainingDisplay.innerText = `あと ${diffDays}日 ${diffHrs}時間`;
-        } else if (diffHrs > 0) {
-            timeRemainingDisplay.innerText = `あと ${diffHrs}時間 ${diffMins}分`;
-        } else {
-            timeRemainingDisplay.innerText = `あと ${diffMins}分！`;
-            timeRemainingDisplay.style.color = (diffMins < 30) ? "#ff4444" : "#ffd700";
-        }
+    // ★ステータス表示の分岐
+    if (diffMs < 0) {
+        statusLabel.innerText = "FINISHED"; // 過去
+        statusLabel.style.color = "#ccc";
+    } else if (isAutoMode && diffMs > 0) {
+        statusLabel.innerText = "NEXT SCHEDULE"; // 次（自動モード時）
+        statusLabel.style.color = "white";
     } else {
-        nextEventDisplay.innerText = "Enjoy Hokkaido!";
-        nextDetailDisplay.innerText = "全日程終了";
-        timeRemainingDisplay.innerText = "";
+        statusLabel.innerText = "FUTURE EVENT"; // 未来（手動でめくった時）
+        statusLabel.style.color = "#88ccff";
+    }
+
+    // テキストセット
+    const timeString = item.time.split(' ')[1] || '';
+    nextEventDisplay.innerText = `${timeString} ${item.title}`;
+    nextDetailDisplay.innerText = item.detail || "";
+    cardCounter.innerText = `${displayIndex + 1} / ${scheduleData.length}`; // ページ番号
+
+    // Web情報
+    if (item.webUrl && item.webUrl.startsWith('http')) {
+        webContainer.style.display = "block";
+        webLinkBtn.href = item.webUrl;
+        webDescDisplay.innerText = item.webDesc || "Webサイト";
+        webLinkText.innerText = "Webサイトを開く";
+    }
+
+    // 画像情報
+    if (item.imgUrl && item.imgUrl.startsWith('http')) {
+        imageContainer.style.display = "block";
+        imageDescDisplay.innerText = item.imgDesc || "画像情報";
+        const driveMatch = item.imgUrl.match(/\/d\/(.+?)\//);
+        let imgSrc = item.imgUrl;
+        if (driveMatch) {
+            imgSrc = `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=s4000`;
+        }
+        mediaContent.innerHTML = `<img src="${imgSrc}" class="event-image" alt="Event Image" onclick="openModal('${imgSrc}', '${item.imgDesc}')">`;
+    }
+
+    // カウントダウン表示（過去の場合は経過時間を表示）
+    const absDiffMs = Math.abs(diffMs);
+    const diffDays = Math.floor(absDiffMs / (1000 * 60 * 60 * 24));
+    const diffHrs = Math.floor((absDiffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const diffMins = Math.floor((absDiffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    let timeText = "";
+    if (diffDays > 0) timeText = `${diffDays}日 ${diffHrs}時間`;
+    else if (diffHrs > 0) timeText = `${diffHrs}時間 ${diffMins}分`;
+    else timeText = `${diffMins}分`;
+
+    if (diffMs < 0) {
+        timeRemainingDisplay.innerText = `${timeText} 前`;
+        timeRemainingDisplay.style.color = "#ccc";
+    } else {
+        timeRemainingDisplay.innerText = `あと ${timeText}`;
+        timeRemainingDisplay.style.color = (diffMs < 1000 * 60 * 30 && diffDays === 0 && diffHrs === 0) ? "#ff4444" : "#ffd700";
+    }
+    
+    // 矢印の表示制御（最初と最後）
+    document.querySelector('.left-arrow').style.display = (displayIndex === 0) ? 'none' : 'block';
+    document.querySelector('.right-arrow').style.display = (displayIndex === scheduleData.length - 1) ? 'none' : 'block';
+}
+
+// --- 機能3: カード切り替え・スワイプ ---
+function changeCard(direction) {
+    const newIndex = displayIndex + direction;
+    
+    // 配列の範囲内かチェック
+    if (newIndex >= 0 && newIndex < scheduleData.length) {
+        displayIndex = newIndex;
+        isAutoMode = false; // 手動操作したら自動モード解除
+        
+        // アニメーション用クラス付与
+        const swipeArea = document.getElementById('swipe-area');
+        swipeArea.classList.remove('fade-in');
+        void swipeArea.offsetWidth; // リフロー発生
+        swipeArea.classList.add('fade-in');
+
+        updateTimeKeeper();
     }
 }
 
-// --- 機能3: モーダル (画像拡大) ---
+function jumpToCard(index) {
+    displayIndex = index;
+    isAutoMode = false;
+    switchTab('home'); // ホームタブに移動
+    updateTimeKeeper();
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // 上に戻る
+}
+
+// タッチイベントの処理
+function setupSwipe() {
+    const swipeArea = document.getElementById('time-keeper'); // 矢印も含めてスワイプ判定
+    let startX = 0;
+    let endX = 0;
+
+    swipeArea.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+    }, { passive: true });
+
+    swipeArea.addEventListener('touchmove', (e) => {
+        endX = e.touches[0].clientX;
+    }, { passive: true });
+
+    swipeArea.addEventListener('touchend', () => {
+        if (startX === 0 || endX === 0) return; // タップの場合は無視
+        
+        const diff = startX - endX;
+        // 50px以上動いたらスワイプとみなす
+        if (diff > 50) {
+            changeCard(1); // 左へスワイプ＝次のカード（右）へ
+        } else if (diff < -50) {
+            changeCard(-1); // 右へスワイプ＝前のカード（左）へ
+        }
+        
+        // リセット
+        startX = 0;
+        endX = 0;
+    });
+}
+
+
+// --- 機能4: モーダル (画像拡大) ---
 function openModal(src, caption) {
     const modal = document.getElementById("image-modal");
     const modalImg = document.getElementById("modal-img");
     const captionText = document.getElementById("caption");
-    
     modal.style.display = "block";
     modalImg.src = src;
     captionText.innerText = caption || "";
-    
-    // ズーム状態をリセット
     modalImg.classList.remove("zoomed");
 }
 
 function closeModal() {
     document.getElementById("image-modal").style.display = "none";
 }
-
-// モーダル内の画像をタップした時の処理（ズーム切り替え）
-// ※画像のクリックイベントが closeModal に吸われないように stopPropagation する
 document.getElementById("modal-img").addEventListener('click', function(e) {
-    e.stopPropagation(); // 親要素(modal)への伝播を止める
-    this.classList.toggle("zoomed"); // ズームクラスを付け外し
+    e.stopPropagation(); 
+    this.classList.toggle("zoomed"); 
 });
-
 
 // --- 共通機能 ---
 function switchTab(tabId) {
@@ -230,5 +296,15 @@ function filterSpots() {
 
 document.addEventListener('DOMContentLoaded', function() {
     loadSchedule();
-    setInterval(updateTimeKeeper, 60000);
+    // 1分ごとの更新（手動モードになっていなければ自動で切り替わる）
+    setInterval(() => {
+        if (isAutoMode) {
+             const now = new Date();
+             const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime());
+             if (nextIdx !== -1 && nextIdx !== displayIndex) {
+                 displayIndex = nextIdx; // 時間が経過して次の予定になったら切り替える
+             }
+        }
+        updateTimeKeeper(); // カウントダウン表示の更新
+    }, 60000);
 });
