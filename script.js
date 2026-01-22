@@ -157,8 +157,9 @@ function updateTimeKeeper() {
             const driveMatch = nextItem.imgUrl.match(/\/d\/(.+?)\//);
             let imgSrc = nextItem.imgUrl;
             if (driveMatch) {
-                // セキュリティブロック回避用のURL
-                imgSrc = `https://lh3.googleusercontent.com/d/$${driveMatch[1]}`;
+                // ★修正：Safari対応のため、GoogleのサムネイルAPIを使用します
+                // sz=s4000 は「長辺4000px」の意味。これで高画質のまま表示できます。
+                imgSrc = `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=s4000`;
             }
 
             // 画像生成 (クリックでモーダルを開くイベント追加)
