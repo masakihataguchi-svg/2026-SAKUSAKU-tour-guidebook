@@ -16,11 +16,11 @@ header {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* タイムキーパー */
+/* --- タイムキーパー (ブロックデザイン) --- */
 .time-keeper-box {
     background: linear-gradient(135deg, #0055a4, #0088cc);
     color: white;
-    padding: 30px 20px;
+    padding: 20px 15px;
     text-align: center;
     margin: 15px;
     border-radius: 12px;
@@ -32,51 +32,148 @@ header {
     opacity: 0.9;
     letter-spacing: 1px;
     text-transform: uppercase;
+    margin-bottom: 10px;
+    display: block;
 }
 
-#next-event {
-    margin: 10px 0;
-    font-size: 1.8em; /* タイトルも少し大きく */
+/* 情報ブロック共通スタイル */
+.info-block {
+    background-color: rgba(255, 255, 255, 0.1); /* 半透明の背景 */
+    border: 1px solid rgba(255, 255, 255, 0.3); /* 薄い枠線 */
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+/* スケジュールブロック */
+.schedule-block h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.8em;
     font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
 }
-
-#time-remaining {
-    font-size: 1.2em;
-    color: #ffd700;
+.schedule-block p {
+    font-size: 1.1em;
     font-weight: bold;
     margin: 0;
+    line-height: 1.5;
 }
 
-/* Webリンクボタン */
+/* Web/画像ブロック */
+.block-label {
+    font-size: 1.0em;
+    font-weight: bold;
+    margin-bottom: 8px;
+    margin-top: 0;
+    opacity: 1.0;
+    text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+    padding-bottom: 5px;
+}
+
 .event-link-btn {
-    display: inline-block;
+    display: block; /* 幅いっぱい */
     margin-top: 5px;
-    padding: 12px 24px; /* ボタン自体も大きく */
-    background-color: rgba(255, 255, 255, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    color: white;
+    padding: 12px;
+    background-color: white;
+    color: #0055a4; /* 文字色を青に */
     text-decoration: none;
-    border-radius: 30px;
-    font-size: 1.1em; /* ボタンの文字も大きく */
+    border-radius: 6px;
+    font-size: 1.1em;
     font-weight: bold;
     transition: background 0.2s;
 }
+.event-link-btn:active { background-color: #eee; }
 
-.event-link-btn:hover, .event-link-btn:active {
-    background-color: rgba(255, 255, 255, 0.4);
-}
-
-/* ★画像表示エリア (ここを修正しました) */
+/* 画像エリア */
 .event-image {
-    width: 100%;           /* 横幅いっぱいに */
-    height: auto;          /* 高さは自動 */
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    margin-top: 10px;
-    background-color: #f0f0f0; /* 読み込み中の背景色 */
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    background-color: #f0f0f0;
+}
+.tap-hint {
+    font-size: 0.8em;
+    margin-top: 5px;
+    margin-bottom: 0;
+    opacity: 0.8;
 }
 
-/* --- 以下、共通パーツ --- */
+/* カウントダウン */
+.countdown-area { margin-top: 20px; }
+#time-remaining {
+    font-size: 1.4em;
+    color: #ffd700;
+    font-weight: bold;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* --- 画像拡大モーダル (ライトボックス) --- */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 2000; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    background-color: rgba(0,0,0,0.9); 
+    overflow: hidden; /* スクロールは内部で制御 */
+}
+
+/* 画像をラップするコンテナ（ここがスクロールする） */
+.modal-content-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto; /* 拡大時にスクロール可能にする */
+}
+
+.modal-content {
+    max-width: 95%;
+    max-height: 95%;
+    object-fit: contain;
+    transition: transform 0.2s;
+}
+
+/* ズーム状態のクラス */
+.modal-content.zoomed {
+    max-width: none;
+    max-height: none;
+    width: 200%; /* 2倍に拡大 */
+    cursor: grab;
+}
+
+.close-modal {
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    transition: 0.3s;
+    z-index: 2001;
+    cursor: pointer;
+}
+
+#caption {
+    margin: auto;
+    display: block;
+    width: 80%;
+    max-width: 700px;
+    text-align: center;
+    color: #ccc;
+    padding: 10px 0;
+    position: absolute;
+    bottom: 20px;
+    left: 0; right: 0;
+}
+
+/* --- 共通パーツ (変更なし) --- */
 .tab-content { display: none; padding: 0 15px; animation: fadeIn 0.3s; }
 .tab-content.active { display: block; }
 
@@ -91,8 +188,9 @@ header {
 
 #searchBox { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
 
-.map-btn { display: inline-block; text-decoration: none; border-radius: 6px; margin-top: 10px; background-color: #e74c3c; color: white; padding: 6px 12px; font-size: 0.9em; }
-.upload-btn { display: inline-block; text-decoration: none; text-align: center; border-radius: 6px; margin-top: 10px; background-color: #34a853; color: white; padding: 12px; width: 100%; box-sizing: border-box; font-weight: bold; }
+.map-btn, .upload-btn { display: inline-block; text-decoration: none; border-radius: 6px; margin-top: 10px; font-weight: bold; }
+.map-btn { background-color: #e74c3c; color: white; padding: 6px 12px; font-size: 0.9em; }
+.upload-btn { background-color: #34a853; color: white; padding: 12px; width: 100%; box-sizing: border-box; text-align: center; }
 
 .checklist { list-style: none; padding: 0; }
 .checklist li { padding: 10px 0; border-bottom: 1px solid #eee; font-size: 1.1em; }
