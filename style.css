@@ -4,7 +4,7 @@ body {
     padding: 0;
     background-color: #f0f8ff;
     color: #333;
-    padding-bottom: 90px;
+    padding-bottom: 90px; /* ナビゲーションの分空ける */
     -webkit-text-size-adjust: 100%;
 }
 
@@ -16,11 +16,11 @@ header {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* タイムキーパー */
+/* --- タイムキーパー (ホーム画面) --- */
 .time-keeper-box {
     background: linear-gradient(135deg, #0055a4, #0088cc);
     color: white;
-    padding: 30px 20px; /* 少し縦幅を広げました */
+    padding: 30px 20px;
     text-align: center;
     margin: 15px;
     border-radius: 12px;
@@ -36,7 +36,7 @@ header {
 
 #next-event {
     margin: 10px 0;
-    font-size: 1.5em; /* 文字を少し大きく */
+    font-size: 1.5em;
     font-weight: bold;
 }
 
@@ -47,10 +47,10 @@ header {
     margin: 0;
 }
 
-/* ★新設：イベント用リンクボタン */
+/* Webリンクボタン */
 .event-link-btn {
     display: inline-block;
-    margin-top: 15px;
+    margin-top: 10px;
     padding: 8px 16px;
     background-color: rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.6);
@@ -60,11 +60,23 @@ header {
     font-size: 0.9em;
     transition: background 0.2s;
 }
+
 .event-link-btn:hover, .event-link-btn:active {
     background-color: rgba(255, 255, 255, 0.4);
 }
 
-/* コンテンツエリア */
+/* 画像表示エリア */
+.event-image {
+    max-width: 100%;       /* 親要素からはみ出さない */
+    max-height: 200px;     /* 高くなりすぎないよう制限 */
+    border-radius: 8px;    /* 角を丸く */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* 少し影をつける */
+    margin-top: 10px;
+    object-fit: cover;     /* 枠に合わせてトリミング */
+    background-color: white;
+}
+
+/* --- コンテンツ共通 --- */
 .tab-content {
     display: none;
     padding: 0 15px;
@@ -84,11 +96,25 @@ header {
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.timeline ul { list-style: none; padding: 0; }
-.timeline li { margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-.time { font-weight: bold; color: #0055a4; display: inline-block; width: 50px; }
+/* --- 日程表リスト --- */
+.timeline ul {
+    list-style: none;
+    padding: 0;
+}
+.timeline li {
+    margin-bottom: 8px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+    line-height: 1.5;
+}
+.time {
+    font-weight: bold;
+    color: #0055a4;
+    display: inline-block;
+    width: 50px;
+}
 
-/* 検索ボックス */
+/* --- スポット検索 --- */
 #searchBox {
     width: 100%;
     padding: 12px;
@@ -96,7 +122,7 @@ header {
     border: 1px solid #ddd;
     border-radius: 8px;
     box-sizing: border-box;
-    font-size: 16px;
+    font-size: 16px; /* iOSでのズーム防止 */
 }
 
 .map-btn, .upload-btn {
@@ -106,10 +132,39 @@ header {
     border-radius: 6px;
     margin-top: 10px;
 }
-.map-btn { background-color: #e74c3c; color: white; padding: 6px 12px; font-size: 0.9em; }
-.upload-btn { background-color: #34a853; color: white; padding: 12px; width: 100%; box-sizing: border-box; font-weight: bold; }
 
-/* ボトムナビ (4つに変更) */
+.map-btn {
+    background-color: #e74c3c;
+    color: white;
+    padding: 6px 12px;
+    font-size: 0.9em;
+}
+
+.upload-btn {
+    background-color: #34a853;
+    color: white;
+    padding: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    font-weight: bold;
+}
+
+/* --- メモ・チェックリスト --- */
+.checklist {
+    list-style: none;
+    padding: 0;
+}
+.checklist li {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 1.1em;
+}
+.checklist input {
+    transform: scale(1.5);
+    margin-right: 10px;
+}
+
+/* --- ボトムナビゲーション (4つ) --- */
 .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -117,7 +172,7 @@ header {
     background: white;
     display: flex;
     justify-content: space-around;
-    padding: 10px 0 25px 0;
+    padding: 10px 0 25px 0; /* iPhone X以降のホームバー回避 */
     border-top: 1px solid #eee;
     box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
     z-index: 1000;
@@ -129,17 +184,21 @@ header {
     font-size: 0.7em;
     color: #999;
     cursor: pointer;
-    width: 25%; /* ★ここを33%から25%に変更 */
+    width: 25%; /* 4等分 */
 }
 
-.nav-btn.active { color: #0055a4; font-weight: bold; }
-.nav-btn i { font-size: 1.6em; margin-bottom: 4px; display: block; }
+.nav-btn.active {
+    color: #0055a4;
+    font-weight: bold;
+}
+
+.nav-btn i {
+    font-size: 1.6em;
+    margin-bottom: 4px;
+    display: block;
+}
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
-.checklist { list-style: none; padding: 0; }
-.checklist li { padding: 10px 0; border-bottom: 1px solid #eee; font-size: 1.1em; }
-.checklist input { transform: scale(1.5); margin-right: 10px; }
