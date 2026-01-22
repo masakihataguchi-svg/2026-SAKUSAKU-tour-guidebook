@@ -4,7 +4,7 @@ body {
     padding: 0;
     background-color: #f0f8ff;
     color: #333;
-    padding-bottom: 90px; /* ナビゲーションの分空ける */
+    padding-bottom: 90px;
     -webkit-text-size-adjust: 100%;
 }
 
@@ -16,7 +16,7 @@ header {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* --- タイムキーパー (ホーム画面) --- */
+/* タイムキーパー */
 .time-keeper-box {
     background: linear-gradient(135deg, #0055a4, #0088cc);
     color: white;
@@ -36,7 +36,7 @@ header {
 
 #next-event {
     margin: 10px 0;
-    font-size: 1.5em;
+    font-size: 1.8em; /* タイトルも少し大きく */
     font-weight: bold;
 }
 
@@ -50,14 +50,15 @@ header {
 /* Webリンクボタン */
 .event-link-btn {
     display: inline-block;
-    margin-top: 10px;
-    padding: 8px 16px;
-    background-color: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    margin-top: 5px;
+    padding: 12px 24px; /* ボタン自体も大きく */
+    background-color: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.8);
     color: white;
     text-decoration: none;
-    border-radius: 20px;
-    font-size: 0.9em;
+    border-radius: 30px;
+    font-size: 1.1em; /* ボタンの文字も大きく */
+    font-weight: bold;
     transition: background 0.2s;
 }
 
@@ -65,140 +66,45 @@ header {
     background-color: rgba(255, 255, 255, 0.4);
 }
 
-/* 画像表示エリア */
+/* ★画像表示エリア (ここを修正しました) */
 .event-image {
-    max-width: 100%;       /* 親要素からはみ出さない */
-    max-height: 200px;     /* 高くなりすぎないよう制限 */
-    border-radius: 8px;    /* 角を丸く */
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* 少し影をつける */
+    width: 100%;           /* 横幅いっぱいに */
+    height: auto;          /* 高さは自動 */
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     margin-top: 10px;
-    object-fit: cover;     /* 枠に合わせてトリミング */
-    background-color: white;
+    background-color: #f0f0f0; /* 読み込み中の背景色 */
 }
 
-/* --- コンテンツ共通 --- */
-.tab-content {
-    display: none;
-    padding: 0 15px;
-    animation: fadeIn 0.3s;
-}
+/* --- 以下、共通パーツ --- */
+.tab-content { display: none; padding: 0 15px; animation: fadeIn 0.3s; }
+.tab-content.active { display: block; }
 
-.tab-content.active {
-    display: block;
-}
-
-/* カードスタイル */
 .day-card, .spot-item, .photo-upload-section {
-    background: white;
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 15px;
+    background: white; border-radius: 10px; padding: 15px; margin-bottom: 15px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-/* --- 日程表リスト --- */
-.timeline ul {
-    list-style: none;
-    padding: 0;
-}
-.timeline li {
-    margin-bottom: 8px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 8px;
-    line-height: 1.5;
-}
-.time {
-    font-weight: bold;
-    color: #0055a4;
-    display: inline-block;
-    width: 50px;
-}
+.timeline ul { list-style: none; padding: 0; }
+.timeline li { margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 8px; line-height: 1.5; }
+.time { font-weight: bold; color: #0055a4; display: inline-block; width: 50px; }
 
-/* --- スポット検索 --- */
-#searchBox {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-sizing: border-box;
-    font-size: 16px; /* iOSでのズーム防止 */
-}
+#searchBox { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
 
-.map-btn, .upload-btn {
-    display: inline-block;
-    text-decoration: none;
-    text-align: center;
-    border-radius: 6px;
-    margin-top: 10px;
-}
+.map-btn { display: inline-block; text-decoration: none; border-radius: 6px; margin-top: 10px; background-color: #e74c3c; color: white; padding: 6px 12px; font-size: 0.9em; }
+.upload-btn { display: inline-block; text-decoration: none; text-align: center; border-radius: 6px; margin-top: 10px; background-color: #34a853; color: white; padding: 12px; width: 100%; box-sizing: border-box; font-weight: bold; }
 
-.map-btn {
-    background-color: #e74c3c;
-    color: white;
-    padding: 6px 12px;
-    font-size: 0.9em;
-}
+.checklist { list-style: none; padding: 0; }
+.checklist li { padding: 10px 0; border-bottom: 1px solid #eee; font-size: 1.1em; }
+.checklist input { transform: scale(1.5); margin-right: 10px; }
 
-.upload-btn {
-    background-color: #34a853;
-    color: white;
-    padding: 12px;
-    width: 100%;
-    box-sizing: border-box;
-    font-weight: bold;
-}
-
-/* --- メモ・チェックリスト --- */
-.checklist {
-    list-style: none;
-    padding: 0;
-}
-.checklist li {
-    padding: 10px 0;
-    border-bottom: 1px solid #eee;
-    font-size: 1.1em;
-}
-.checklist input {
-    transform: scale(1.5);
-    margin-right: 10px;
-}
-
-/* --- ボトムナビゲーション (4つ) --- */
 .bottom-nav {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    background: white;
-    display: flex;
-    justify-content: space-around;
-    padding: 10px 0 25px 0; /* iPhone X以降のホームバー回避 */
-    border-top: 1px solid #eee;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-    z-index: 1000;
+    position: fixed; bottom: 0; width: 100%; background: white;
+    display: flex; justify-content: space-around; padding: 10px 0 25px 0;
+    border-top: 1px solid #eee; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 1000;
 }
+.nav-btn { background: none; border: none; font-size: 0.7em; color: #999; cursor: pointer; width: 25%; }
+.nav-btn.active { color: #0055a4; font-weight: bold; }
+.nav-btn i { font-size: 1.6em; margin-bottom: 4px; display: block; }
 
-.nav-btn {
-    background: none;
-    border: none;
-    font-size: 0.7em;
-    color: #999;
-    cursor: pointer;
-    width: 25%; /* 4等分 */
-}
-
-.nav-btn.active {
-    color: #0055a4;
-    font-weight: bold;
-}
-
-.nav-btn i {
-    font-size: 1.6em;
-    margin-bottom: 4px;
-    display: block;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
