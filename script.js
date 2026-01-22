@@ -2,12 +2,12 @@
 let scheduleData = [];
 // 現在表示しているカードのインデックス番号
 let displayIndex = 0;
-// 自動更新モードかどうかのフラグ（スワイプしたらfalseになる）
+// 自動更新モードかどうかのフラグ
 let isAutoMode = true;
 
 // --- 機能0: データ読み込み ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: スワイプ対応版★");
+    console.log("★最新版JS読み込み成功: 2段表示レイアウト版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -41,19 +41,19 @@ async function loadSchedule() {
             return { time, title, detail, webDesc, webUrl, imgDesc, imgUrl };
         }).filter(item => item !== null);
 
-        // 初期表示位置を決定（現在時刻に一番近い未来の予定）
+        // 初期表示位置を決定
         const now = new Date();
         const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime());
         
         if (nextIdx !== -1) {
             displayIndex = nextIdx;
         } else {
-            displayIndex = scheduleData.length - 1; // 全部終わってたら最後を表示
+            displayIndex = scheduleData.length - 1;
         }
 
         updateTimeKeeper();
         renderScheduleList(); 
-        setupSwipe(); // ★スワイプ機能の有効化
+        setupSwipe();
 
     } catch (error) {
         console.error("読込エラー:", error);
@@ -93,20 +93,18 @@ function renderScheduleList() {
             linkIcon = ` <a href="${item.webUrl}" target="_blank" style="color:#0055a4; margin-left:5px;"><i class="fas fa-external-link-alt"></i></a>`;
         }
         
-        // リストをクリックしてもそのカードに飛べるようにする
         li.innerHTML = `<span class="time">${timePart}</span> ${item.title}${linkIcon}`;
-        li.onclick = () => jumpToCard(index); // クリックでジャンプ
+        li.onclick = () => jumpToCard(index);
         li.style.cursor = "pointer";
         
         ul.appendChild(li);
     });
 }
 
-// --- 機能2: タイムキーパー (スワイプ対応版) ---
+// --- 機能2: タイムキーパー (2段表示対応版) ---
 function updateTimeKeeper() {
     if (scheduleData.length === 0) return;
 
-    // 表示すべきデータ
     const item = scheduleData[displayIndex];
     if (!item) return;
 
@@ -114,7 +112,6 @@ function updateTimeKeeper() {
     const eventTime = new Date(item.time);
     const diffMs = eventTime - now; 
     
-    // UI要素取得
     const statusLabel = document.getElementById('status-label');
     const nextEventDisplay = document.getElementById('next-event');
     const nextDetailDisplay = document.getElementById('next-detail');
@@ -130,28 +127,27 @@ function updateTimeKeeper() {
     const imageDescDisplay = document.getElementById('image-desc');
     const mediaContent = document.getElementById('media-content');
 
-    // 初期化
     webContainer.style.display = "none";
     imageContainer.style.display = "none";
     mediaContent.innerHTML = "";
 
-    // ★ステータス表示の分岐
     if (diffMs < 0) {
-        statusLabel.innerText = "FINISHED"; // 過去
+        statusLabel.innerText = "FINISHED";
         statusLabel.style.color = "#ccc";
     } else if (isAutoMode && diffMs > 0) {
-        statusLabel.innerText = "NEXT SCHEDULE"; // 次（自動モード時）
+        statusLabel.innerText = "NEXT SCHEDULE";
         statusLabel.style.color = "white";
     } else {
-        statusLabel.innerText = "FUTURE EVENT"; // 未来（手動でめくった時）
+        statusLabel.innerText = "FUTURE EVENT";
         statusLabel.style.color = "#88ccff";
     }
 
-    // テキストセット
+    // ★変更点：時間とタイトルを別のHTMLタグで囲んで出力
     const timeString = item.time.split(' ')[1] || '';
-    nextEventDisplay.innerText = `${timeString} ${item.title}`;
+    nextEventDisplay.innerHTML = `<span class="event-time">${timeString}</span><span class="event-title">${item.title}</span>`;
+    
     nextDetailDisplay.innerText = item.detail || "";
-    cardCounter.innerText = `${displayIndex + 1} / ${scheduleData.length}`; // ページ番号
+    cardCounter.innerText = `${displayIndex + 1} / ${scheduleData.length}`;
 
     // Web情報
     if (item.webUrl && item.webUrl.startsWith('http')) {
@@ -173,7 +169,7 @@ function updateTimeKeeper() {
         mediaContent.innerHTML = `<img src="${imgSrc}" class="event-image" alt="Event Image" onclick="openModal('${imgSrc}', '${item.imgDesc}')">`;
     }
 
-    // カウントダウン表示（過去の場合は経過時間を表示）
+    // カウントダウン
     const absDiffMs = Math.abs(diffMs);
     const diffDays = Math.floor(absDiffMs / (1000 * 60 * 60 * 24));
     const diffHrs = Math.floor((absDiffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -192,7 +188,6 @@ function updateTimeKeeper() {
         timeRemainingDisplay.style.color = (diffMs < 1000 * 60 * 30 && diffDays === 0 && diffHrs === 0) ? "#ff4444" : "#ffd700";
     }
     
-    // 矢印の表示制御（最初と最後）
     document.querySelector('.left-arrow').style.display = (displayIndex === 0) ? 'none' : 'block';
     document.querySelector('.right-arrow').style.display = (displayIndex === scheduleData.length - 1) ? 'none' : 'block';
 }
@@ -200,18 +195,13 @@ function updateTimeKeeper() {
 // --- 機能3: カード切り替え・スワイプ ---
 function changeCard(direction) {
     const newIndex = displayIndex + direction;
-    
-    // 配列の範囲内かチェック
     if (newIndex >= 0 && newIndex < scheduleData.length) {
         displayIndex = newIndex;
-        isAutoMode = false; // 手動操作したら自動モード解除
-        
-        // アニメーション用クラス付与
+        isAutoMode = false;
         const swipeArea = document.getElementById('swipe-area');
         swipeArea.classList.remove('fade-in');
-        void swipeArea.offsetWidth; // リフロー発生
+        void swipeArea.offsetWidth;
         swipeArea.classList.add('fade-in');
-
         updateTimeKeeper();
     }
 }
@@ -219,14 +209,13 @@ function changeCard(direction) {
 function jumpToCard(index) {
     displayIndex = index;
     isAutoMode = false;
-    switchTab('home'); // ホームタブに移動
+    switchTab('home');
     updateTimeKeeper();
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // 上に戻る
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// タッチイベントの処理
 function setupSwipe() {
-    const swipeArea = document.getElementById('time-keeper'); // 矢印も含めてスワイプ判定
+    const swipeArea = document.getElementById('time-keeper');
     let startX = 0;
     let endX = 0;
 
@@ -239,22 +228,17 @@ function setupSwipe() {
     }, { passive: true });
 
     swipeArea.addEventListener('touchend', () => {
-        if (startX === 0 || endX === 0) return; // タップの場合は無視
-        
+        if (startX === 0 || endX === 0) return;
         const diff = startX - endX;
-        // 50px以上動いたらスワイプとみなす
         if (diff > 50) {
-            changeCard(1); // 左へスワイプ＝次のカード（右）へ
+            changeCard(1);
         } else if (diff < -50) {
-            changeCard(-1); // 右へスワイプ＝前のカード（左）へ
+            changeCard(-1);
         }
-        
-        // リセット
         startX = 0;
         endX = 0;
     });
 }
-
 
 // --- 機能4: モーダル (画像拡大) ---
 function openModal(src, caption) {
@@ -296,15 +280,14 @@ function filterSpots() {
 
 document.addEventListener('DOMContentLoaded', function() {
     loadSchedule();
-    // 1分ごとの更新（手動モードになっていなければ自動で切り替わる）
     setInterval(() => {
         if (isAutoMode) {
              const now = new Date();
              const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime());
              if (nextIdx !== -1 && nextIdx !== displayIndex) {
-                 displayIndex = nextIdx; // 時間が経過して次の予定になったら切り替える
+                 displayIndex = nextIdx;
              }
         }
-        updateTimeKeeper(); // カウントダウン表示の更新
+        updateTimeKeeper();
     }, 60000);
 });
