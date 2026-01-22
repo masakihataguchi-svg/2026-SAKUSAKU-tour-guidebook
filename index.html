@@ -25,23 +25,27 @@
                 <div class="current-status">
                     <span id="status-label">NEXT SCHEDULE</span>
                     
-                    <h2 id="next-event">ロード中...</h2>
+                    <div class="info-block schedule-block">
+                        <h2 id="next-event">ロード中...</h2>
+                        <p id="next-detail" style="white-space: pre-wrap;"></p>
+                    </div>
                     
-                    <p id="next-detail" style="font-size: 1.3em; font-weight:bold; margin-top: 10px; min-height: 1.2em; white-space: pre-wrap; line-height: 1.4;"></p>
-                    
-                    <div id="web-link-container" style="display:none; margin-top: 20px;">
-                        <p id="web-desc" style="font-size:1.1em; font-weight:bold; margin-bottom:8px; opacity:0.9;"></p>
+                    <div id="web-link-container" class="info-block web-block" style="display:none;">
+                        <p id="web-desc" class="block-label"></p>
                         <a id="web-link-btn" href="#" target="_blank" class="event-link-btn">
-                            <i class="fas fa-external-link-alt"></i> <span id="web-link-text">リンクを開く</span>
+                            <i class="fas fa-external-link-alt"></i> <span id="web-link-text">Webサイトを開く</span>
                         </a>
                     </div>
 
-                    <div id="image-container" style="display:none; margin-top: 20px;">
-                        <p id="image-desc" style="font-size:1.1em; font-weight:bold; margin-bottom:8px; opacity:0.9;"></p>
+                    <div id="image-container" class="info-block image-block" style="display:none;">
+                        <p id="image-desc" class="block-label"></p>
                         <div id="media-content"></div>
+                        <p class="tap-hint"><i class="fas fa-search-plus"></i> タップして拡大</p>
                     </div>
 
-                    <p id="time-remaining" style="margin-top: 20px;">--:--</p>
+                    <div class="countdown-area">
+                        <p id="time-remaining">--:--</p>
+                    </div>
                 </div>
             </div>
             
@@ -53,8 +57,7 @@
         
         <div id="schedule" class="tab-content">
             <h2><i class="fas fa-list-ul"></i> 全日程リスト</h2>
-            <div class="timeline">
-                </div>
+            <div class="timeline"></div>
         </div>
 
         <div id="spots" class="tab-content">
@@ -91,6 +94,14 @@
             </ul>
         </div>
     </main>
+
+    <div id="image-modal" class="modal" onclick="closeModal()">
+        <span class="close-modal">&times;</span>
+        <div class="modal-content-wrapper">
+            <img class="modal-content" id="modal-img">
+        </div>
+        <div id="caption"></div>
+    </div>
 
     <nav class="bottom-nav">
         <button onclick="switchTab('home')" class="nav-btn active">
