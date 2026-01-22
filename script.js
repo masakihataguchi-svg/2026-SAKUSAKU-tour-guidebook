@@ -3,7 +3,7 @@ let scheduleData = [];
 
 // --- 機能0: データ読み込み (Config -> CSV Fetch) ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: 7列対応版★");
+    console.log("★最新版JS読み込み成功: モーダル対応版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -20,13 +20,10 @@ async function loadSchedule() {
         scheduleData = rows.map(row => {
             if (!row || row.trim() === "") return null;
             
-            // ダブルクォーテーションを除去してカンマ分割
             const cleanRow = row.replace(/"/g, ''); 
             const columns = cleanRow.split(',');
 
-            // --- 列の特定ロジック ---
-            // A列(0)に行番号が入ってズレる現象対策のため、
-            // 「2026」が含まれる列を基準(Time列)として、相対的に他の列を取得します。
+            // 列の特定ロジック
             let tIdx = 0;
             if (columns[1] && columns[1].indexOf('2026') > -1) {
                 tIdx = 1; 
@@ -35,30 +32,15 @@ async function loadSchedule() {
                 return null;
             }
 
-            // --- データのマッピング (新しい列定義) ---
-            // Base: Time列 (tIdx)
-            // +1: Title
-            // +2: Detail
-            // +3: Web説明
-            // +4: Web URL
-            // +5: 画像説明
-            // +6: 画像URL
-            
             const time = columns[tIdx].trim();
             const title = columns[tIdx + 1] ? columns[tIdx + 1].trim() : "";
             const detail = columns[tIdx + 2] ? columns[tIdx + 2].trim() : "";
-            
             const webDesc = columns[tIdx + 3] ? columns[tIdx + 3].trim() : "";
             const webUrl  = columns[tIdx + 4] ? columns[tIdx + 4].trim() : "";
-            
             const imgDesc = columns[tIdx + 5] ? columns[tIdx + 5].trim() : "";
             const imgUrl  = columns[tIdx + 6] ? columns[tIdx + 6].trim() : "";
             
-            return { 
-                time, title, detail, 
-                webDesc, webUrl, 
-                imgDesc, imgUrl 
-            };
+            return { time, title, detail, webDesc, webUrl, imgDesc, imgUrl };
         }).filter(item => item !== null);
 
         updateTimeKeeper();
@@ -102,8 +84,6 @@ function renderScheduleList() {
         const li = document.createElement('li');
         
         let detailHtml = item.detail ? `<br><span style="font-size:0.8em; color:#666;">${item.detail}</span>` : "";
-        
-        // リスト側にもリンクアイコンを出す（Web URLがある場合）
         let linkIcon = "";
         if (item.webUrl && item.webUrl.startsWith('http')) {
             linkIcon = ` <a href="${item.webUrl}" target="_blank" style="color:#0055a4; margin-left:5px;"><i class="fas fa-external-link-alt"></i></a>`;
@@ -114,7 +94,7 @@ function renderScheduleList() {
     });
 }
 
-// --- 機能2: タイムキーパー (Web/画像 分離対応) ---
+// --- 機能2: タイムキーパー (3ブロック & モーダル対応) ---
 function updateTimeKeeper() {
     if (scheduleData.length === 0) return;
 
@@ -124,13 +104,14 @@ function updateTimeKeeper() {
     const nextEventDisplay = document.getElementById('next-event');
     const nextDetailDisplay = document.getElementById('next-detail');
     const timeRemainingDisplay = document.getElementById('time-remaining');
-    const statusLabel = document.getElementById('status-label');
     
+    // Webブロック
     const webContainer = document.getElementById('web-link-container');
     const webDescDisplay = document.getElementById('web-desc');
     const webLinkBtn = document.getElementById('web-link-btn');
     const webLinkText = document.getElementById('web-link-text');
 
+    // 画像ブロック
     const imageContainer = document.getElementById('image-container');
     const imageDescDisplay = document.getElementById('image-desc');
     const mediaContent = document.getElementById('media-content');
@@ -141,7 +122,7 @@ function updateTimeKeeper() {
         return new Date(item.time).getTime() > now.getTime();
     });
 
-    // --- 表示のリセット ---
+    // 初期化
     webContainer.style.display = "none";
     imageContainer.style.display = "none";
     mediaContent.innerHTML = "";
@@ -154,36 +135,35 @@ function updateTimeKeeper() {
         const diffHrs = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
-        statusLabel.innerText = "NEXT SCHEDULE";
+        // 1. スケジュール情報
         const timeString = nextItem.time.split(' ')[1] || '';
         nextEventDisplay.innerText = `${timeString} ${nextItem.title}`;
         nextDetailDisplay.innerText = nextItem.detail || "";
 
-        // ★Web URLの処理
+        // 2. Web情報
         if (nextItem.webUrl && nextItem.webUrl.startsWith('http')) {
             webContainer.style.display = "block";
             webLinkBtn.href = nextItem.webUrl;
-            // 説明があればそれをボタン名に、なければ「リンクを開く」
-            webDescDisplay.innerText = nextItem.webDesc || ""; 
-            webLinkText.innerText = nextItem.webDesc ? "Webサイトを開く" : "リンクを開く";
+            webDescDisplay.innerText = nextItem.webDesc || "Webサイト";
+            webLinkText.innerText = "Webサイトを開く";
         }
 
-        // ★画像の処理
+        // 3. 画像情報
         if (nextItem.imgUrl && nextItem.imgUrl.startsWith('http')) {
             imageContainer.style.display = "block";
-            imageDescDisplay.innerText = nextItem.imgDesc || "";
+            imageDescDisplay.innerText = nextItem.imgDesc || "画像情報";
 
             // Googleドライブ判定
             const driveMatch = nextItem.imgUrl.match(/\/d\/(.+?)\//);
             let imgSrc = nextItem.imgUrl;
-            
             if (driveMatch) {
-                const fileId = driveMatch[1];
-                // ★ここを変更：uc?export=view ではなく lh3.googleusercontent.com/d/ を使う
-                // これにより、セキュリティブロックを回避して画像として表示しやすくなります
-                imgSrc = `https://lh3.googleusercontent.com/d/${fileId}`;
+                // セキュリティブロック回避用のURL
+                imgSrc = `https://lh3.googleusercontent.com/d/$${driveMatch[1]}`;
             }
-            mediaContent.innerHTML = `<img src="${imgSrc}" class="event-image" alt="Event Image">`;
+
+            // 画像生成 (クリックでモーダルを開くイベント追加)
+            // onclickで openModal を呼び出し、引数に画像のURLと説明を渡す
+            mediaContent.innerHTML = `<img src="${imgSrc}" class="event-image" alt="Event Image" onclick="openModal('${imgSrc}', '${nextItem.imgDesc}')">`;
         }
 
         // カウントダウン
@@ -196,20 +176,46 @@ function updateTimeKeeper() {
             timeRemainingDisplay.style.color = (diffMins < 30) ? "#ff4444" : "#ffd700";
         }
     } else {
-        statusLabel.innerText = "INFORMATION";
         nextEventDisplay.innerText = "Enjoy Hokkaido!";
-        nextDetailDisplay.innerText = "";
-        timeRemainingDisplay.innerText = "全日程終了";
+        nextDetailDisplay.innerText = "全日程終了";
+        timeRemainingDisplay.innerText = "";
     }
 }
 
-// --- 機能3〜起動処理（変更なし） ---
+// --- 機能3: モーダル (画像拡大) ---
+function openModal(src, caption) {
+    const modal = document.getElementById("image-modal");
+    const modalImg = document.getElementById("modal-img");
+    const captionText = document.getElementById("caption");
+    
+    modal.style.display = "block";
+    modalImg.src = src;
+    captionText.innerText = caption || "";
+    
+    // ズーム状態をリセット
+    modalImg.classList.remove("zoomed");
+}
+
+function closeModal() {
+    document.getElementById("image-modal").style.display = "none";
+}
+
+// モーダル内の画像をタップした時の処理（ズーム切り替え）
+// ※画像のクリックイベントが closeModal に吸われないように stopPropagation する
+document.getElementById("modal-img").addEventListener('click', function(e) {
+    e.stopPropagation(); // 親要素(modal)への伝播を止める
+    this.classList.toggle("zoomed"); // ズームクラスを付け外し
+});
+
+
+// --- 共通機能 ---
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     if(typeof event !== 'undefined' && event.currentTarget) event.currentTarget.classList.add('active');
 }
+
 function filterSpots() {
     const input = document.getElementById('searchBox');
     if (!input) return;
@@ -220,6 +226,7 @@ function filterSpots() {
         li[i].style.display = (text.toUpperCase().indexOf(filter) > -1) ? "" : "none";
     }
 }
+
 document.addEventListener('DOMContentLoaded', function() {
     loadSchedule();
     setInterval(updateTimeKeeper, 60000);
