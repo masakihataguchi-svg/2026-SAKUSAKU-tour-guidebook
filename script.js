@@ -179,9 +179,10 @@ function updateTimeKeeper() {
             
             if (driveMatch) {
                 const fileId = driveMatch[1];
-                imgSrc = `https://drive.google.com/uc?export=view&id=${fileId}`;
+                // ★ここを変更：uc?export=view ではなく lh3.googleusercontent.com/d/ を使う
+                // これにより、セキュリティブロックを回避して画像として表示しやすくなります
+                imgSrc = `https://lh3.googleusercontent.com/d/${fileId}`;
             }
-
             mediaContent.innerHTML = `<img src="${imgSrc}" class="event-image" alt="Event Image">`;
         }
 
