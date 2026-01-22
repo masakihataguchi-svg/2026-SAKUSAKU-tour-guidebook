@@ -25,6 +25,48 @@ header {
     margin: 15px;
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    position: relative; /* 矢印の配置基準 */
+    overflow: hidden; /* はみ出し防止 */
+}
+
+/* スワイプナビゲーション矢印 */
+.nav-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.5em;
+    padding: 20px 10px;
+    cursor: pointer;
+    opacity: 0.5;
+    z-index: 10;
+    transition: opacity 0.2s;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.nav-arrow:hover, .nav-arrow:active {
+    opacity: 1.0;
+    background-color: rgba(255,255,255,0.1);
+    border-radius: 5px;
+}
+
+.left-arrow { left: 0; }
+.right-arrow { right: 0; }
+
+/* スワイプエリア */
+#swipe-area {
+    touch-action: pan-y; /* 縦スクロールはブラウザに任せ、横操作はJSで取る */
+    min-height: 300px;   /* 高さを確保してガタつき防止 */
+    padding: 0 20px;     /* 矢印と被らないように余白 */
+}
+
+/* カード切り替え時のフェードインアニメーション */
+.fade-in {
+    animation: fadeInCard 0.3s ease-in-out;
+}
+
+@keyframes fadeInCard {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
 }
 
 #status-label {
@@ -120,10 +162,9 @@ header {
     width: 100%; 
     height: 100%; 
     background-color: rgba(0,0,0,0.9); 
-    overflow: hidden; /* スクロールは内部で制御 */
+    overflow: hidden;
 }
 
-/* 画像をラップするコンテナ（ここがスクロールする） */
 .modal-content-wrapper {
     width: 100%;
     height: 100%;
@@ -173,7 +214,7 @@ header {
     left: 0; right: 0;
 }
 
-/* --- 共通パーツ (変更なし) --- */
+/* --- 共通パーツ --- */
 .tab-content { display: none; padding: 0 15px; animation: fadeIn 0.3s; }
 .tab-content.active { display: block; }
 
