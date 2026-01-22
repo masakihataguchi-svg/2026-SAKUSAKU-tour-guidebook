@@ -1,123 +1,47 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>北海道旅行 2026</title>
+<div id="home" class="tab-content active">
     
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/64/64572.png">
-    
-    <link rel="stylesheet" href="style.css">
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body>
+    <div id="time-keeper" class="time-keeper-box" style="position: relative;">
+        
+        <div class="nav-arrow left-arrow" onclick="changeCard(-1)">
+            <i class="fas fa-chevron-left"></i>
+        </div>
 
-    <header>
-        <h1><i class="fas fa-snowflake"></i> Hokkaido 2026</h1>
-    </header>
-
-    <main id="content-area">
-
-        <div id="home" class="tab-content active">
-            <div id="time-keeper" class="time-keeper-box">
-                <div class="current-status">
-                    <span id="status-label">NEXT SCHEDULE</span>
-                    
-                    <div class="info-block schedule-block">
-                        <h2 id="next-event">ロード中...</h2>
-                        <p id="next-detail" style="white-space: pre-wrap;"></p>
-                    </div>
-                    
-                    <div id="web-link-container" class="info-block web-block" style="display:none;">
-                        <p id="web-desc" class="block-label"></p>
-                        <a id="web-link-btn" href="#" target="_blank" class="event-link-btn">
-                            <i class="fas fa-external-link-alt"></i> <span id="web-link-text">Webサイトを開く</span>
-                        </a>
-                    </div>
-
-                    <div id="image-container" class="info-block image-block" style="display:none;">
-                        <p id="image-desc" class="block-label"></p>
-                        <div id="media-content"></div>
-                        <p class="tap-hint"><i class="fas fa-search-plus"></i> タップして拡大</p>
-                    </div>
-
-                    <div class="countdown-area">
-                        <p id="time-remaining">--:--</p>
-                    </div>
-                </div>
+        <div id="swipe-area" class="current-status">
+            <span id="status-label">NEXT SCHEDULE</span>
+            
+            <div class="info-block schedule-block">
+                <h2 id="next-event">ロード中...</h2>
+                <p id="next-detail" style="white-space: pre-wrap;"></p>
             </div>
             
-            <div style="text-align:center; margin-top:50px; color:#aaa;">
-                <i class="fas fa-map-marked-alt" style="font-size: 3em; opacity:0.2;"></i>
-                <p>Have a nice trip!</p>
+            <div id="web-link-container" class="info-block web-block" style="display:none;">
+                <p id="web-desc" class="block-label"></p>
+                <a id="web-link-btn" href="#" target="_blank" class="event-link-btn">
+                    <i class="fas fa-external-link-alt"></i> <span id="web-link-text">Webサイトを開く</span>
+                </a>
             </div>
-        </div>
-        
-        <div id="schedule" class="tab-content">
-            <h2><i class="fas fa-list-ul"></i> 全日程リスト</h2>
-            <div class="timeline"></div>
-        </div>
 
-        <div id="spots" class="tab-content">
-            <h2><i class="fas fa-search"></i> スポット検索</h2>
-            <input type="text" id="searchBox" placeholder="場所名で検索..." onkeyup="filterSpots()">
-            <ul id="spotList">
-                 <li class="spot-item">
-                    <strong>ジンギスカンだるま</strong>
-                    <p>混雑必至。防寒対策して並ぶ。</p>
-                    <a href="https://www.google.com/maps/search/?api=1&query=ジンギスカンだるま" target="_blank" class="map-btn">Map</a>
-                </li>
-                 <li class="spot-item">
-                    <strong>小樽運河</strong>
-                    <p>夜景が綺麗。クルーズもおすすめ。</p>
-                    <a href="https://www.google.com/maps/search/?api=1&query=小樽運河" target="_blank" class="map-btn">Map</a>
-                </li>
-            </ul>
-        </div>
-
-        <div id="memo" class="tab-content">
-            <div class="photo-upload-section">
-                <h3><i class="fas fa-camera"></i> 思い出アルバム</h3>
-                <p>旅の写真はここにアップロード！</p>
-                <a href="#" target="_blank" class="upload-btn">Googleフォトを開く</a>
+            <div id="image-container" class="info-block image-block" style="display:none;">
+                <p id="image-desc" class="block-label"></p>
+                <div id="media-content"></div>
+                <p class="tap-hint"><i class="fas fa-search-plus"></i> タップして拡大</p>
             </div>
-            <hr>
-            <h2>持ち物チェック</h2>
-            <ul class="checklist">
-                <li><input type="checkbox"> 航空券 (eチケット)</li>
-                <li><input type="checkbox"> モバイルバッテリー</li>
-                <li><input type="checkbox"> 充電器・ケーブル</li>
-                <li><input type="checkbox"> 常備薬</li>
-                <li><input type="checkbox"> 防寒具（手袋・マフラー）</li>
-            </ul>
-        </div>
-    </main>
 
-    <div id="image-modal" class="modal" onclick="closeModal()">
-        <span class="close-modal">&times;</span>
-        <div class="modal-content-wrapper">
-            <img class="modal-content" id="modal-img">
+            <div class="countdown-area">
+                <p id="time-remaining">--:--</p>
+            </div>
+            
+            <p id="card-counter" style="font-size:0.8em; opacity:0.6; margin-top:10px;">-- / --</p>
         </div>
-        <div id="caption"></div>
+
+        <div class="nav-arrow right-arrow" onclick="changeCard(1)">
+            <i class="fas fa-chevron-right"></i>
+        </div>
+
     </div>
-
-    <nav class="bottom-nav">
-        <button onclick="switchTab('home')" class="nav-btn active">
-            <i class="fas fa-home"></i><br>ホーム
-        </button>
-        <button onclick="switchTab('schedule')" class="nav-btn">
-            <i class="fas fa-calendar-alt"></i><br>日程
-        </button>
-        <button onclick="switchTab('spots')" class="nav-btn">
-            <i class="fas fa-map-marker-alt"></i><br>探す
-        </button>
-        <button onclick="switchTab('memo')" class="nav-btn">
-            <i class="fas fa-book"></i><br>メモ
-        </button>
-    </nav>
-
-    <script src="script.js"></script>
-</body>
-</html>
+    
+    <div style="text-align:center; margin-top:50px; color:#aaa;">
+        <i class="fas fa-map-marked-alt" style="font-size: 3em; opacity:0.2;"></i>
+        <p>Have a nice trip!</p>
+    </div>
+</div>
