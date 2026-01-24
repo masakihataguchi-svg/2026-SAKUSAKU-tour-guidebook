@@ -8,7 +8,7 @@ let notifiedList = JSON.parse(localStorage.getItem('notifiedList')) || [];
 
 // --- 機能0: データ読み込み ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: 移動手段アイコン細分化版★");
+    console.log("★最新版JS読み込み成功: 滞在ステータス細分化版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -111,37 +111,27 @@ function renderScheduleList() {
         const ul = container.lastElementChild.querySelector('ul');
         const li = document.createElement('li');
         
-        // ★アイコン設定 (細分化)
+        // ★アイコン設定 (細分化・強化版)
         let statusIcon = '<i class="fas fa-circle" style="font-size:0.5em; vertical-align:middle;"></i>';
         let iconColor = "#999"; 
 
-        if (item.mode.includes('walking')) { 
-            statusIcon = '<i class="fas fa-walking"></i>'; iconColor = "#2ecc71"; // 緑：徒歩
-        }
-        else if (item.mode.includes('driving')) { 
-            statusIcon = '<i class="fas fa-car"></i>'; iconColor = "#3498db"; // 青：車
-        }
-        else if (item.mode.includes('railway')) { 
-            statusIcon = '<i class="fas fa-train"></i>'; iconColor = "#e74c3c"; // 赤：鉄道
-        }
-        else if (item.mode.includes('plane')) { 
-            statusIcon = '<i class="fas fa-plane"></i>'; iconColor = "#9b59b6"; // 紫：飛行機
-        }
-        else if (item.mode.includes('moving')) { 
-            statusIcon = '<i class="fas fa-bolt"></i>'; iconColor = "#ff4444"; // 汎用移動
-        }
-        else if (item.mode.includes('transfer')) { 
-            statusIcon = '<i class="fas fa-exchange-alt"></i>'; iconColor = "#f39c12"; // 乗り換え
-        }
-        else if (item.mode.includes('stay')) { 
-            statusIcon = '<i class="fas fa-map-pin"></i>'; iconColor = "#16a085"; // 滞在
-        }
-        else if (item.mode.includes('prep')) { 
-            statusIcon = '<i class="fas fa-clipboard-list"></i>'; iconColor = "#34495e"; // 準備
-        }
-        else if (item.mode.includes('departure')) { 
-            statusIcon = '<i class="fas fa-flag"></i>'; iconColor = "#0055a4"; // 出発
-        }
+        // 移動系
+        if (item.mode.includes('walking')) { statusIcon = '<i class="fas fa-walking"></i>'; iconColor = "#2ecc71"; } // 徒歩(緑)
+        else if (item.mode.includes('driving')) { statusIcon = '<i class="fas fa-car"></i>'; iconColor = "#3498db"; } // 車(青)
+        else if (item.mode.includes('railway')) { statusIcon = '<i class="fas fa-train"></i>'; iconColor = "#e74c3c"; } // 鉄道(赤)
+        else if (item.mode.includes('plane')) { statusIcon = '<i class="fas fa-plane"></i>'; iconColor = "#9b59b6"; } // 飛行機(紫)
+        else if (item.mode.includes('moving')) { statusIcon = '<i class="fas fa-bolt"></i>'; iconColor = "#ff4444"; } // その他移動(赤)
+        else if (item.mode.includes('transfer')) { statusIcon = '<i class="fas fa-exchange-alt"></i>'; iconColor = "#f39c12"; } // 乗換(橙)
+        
+        // 滞在系 (★ここを追加・変更)
+        else if (item.mode.includes('hotel')) { statusIcon = '<i class="fas fa-hotel"></i>'; iconColor = "#8e44ad"; } // ホテル(紫)
+        else if (item.mode.includes('restaurant')) { statusIcon = '<i class="fas fa-utensils"></i>'; iconColor = "#e67e22"; } // 食事(橙)
+        else if (item.mode.includes('sight')) { statusIcon = '<i class="fas fa-camera"></i>'; iconColor = "#16a085"; } // 観光(深緑)
+        else if (item.mode.includes('stay')) { statusIcon = '<i class="fas fa-map-pin"></i>'; iconColor = "#16a085"; } // その他滞在
+        
+        // その他
+        else if (item.mode.includes('prep')) { statusIcon = '<i class="fas fa-clipboard-list"></i>'; iconColor = "#34495e"; } // 準備(紺)
+        else if (item.mode.includes('departure')) { statusIcon = '<i class="fas fa-flag"></i>'; iconColor = "#0055a4"; } // 出発(青)
 
         let linkIcon = "";
         if (item.webLinks.length > 0) linkIcon = ` <i class="fas fa-external-link-alt" style="color:#0055a4; margin-left:5px; font-size:0.8em;"></i>`;
@@ -202,7 +192,7 @@ function updateTimeKeeper() {
     nextDetailDisplay.innerText = item.detail || "";
     cardCounter.innerText = `${displayIndex + 1} / ${scheduleData.length}`;
 
-    // ★Mode分岐 (移動系はすべてスピードメーターON)
+    // ★Mode分岐
     const movingModes = ['moving', 'walking', 'driving', 'railway', 'plane'];
     const isMoving = movingModes.some(m => item.mode.includes(m));
 
@@ -212,12 +202,26 @@ function updateTimeKeeper() {
         renderImages(item, imageContainer, mediaContent, "観光ガイド・車窓");
     } else {
         if (watchId !== null) stopGPS();
+        
+        // ★デフォルトラベルの設定 (滞在系を細分化)
         let defaultWebLabel = "Webサイトを開く";
         let defaultImgLabel = "画像情報";
         
-        if (item.mode.includes('transfer')) { defaultWebLabel = "構内図・地図を見る"; defaultImgLabel = "座席表 / 時刻表"; }
-        else if (item.mode.includes('stay')) { defaultWebLabel = "公式サイト / 詳細"; defaultImgLabel = "ガイドマップ"; }
-        else if (item.mode.includes('prep')) { defaultWebLabel = "天気・情報を確認"; defaultImgLabel = "持ち物 / 朝食情報"; }
+        if (item.mode.includes('transfer')) { 
+            defaultWebLabel = "構内図・地図を見る"; defaultImgLabel = "座席表 / 時刻表"; 
+        }
+        else if (item.mode.includes('hotel')) { 
+            defaultWebLabel = "ホテル公式サイト"; defaultImgLabel = "施設案内 / 部屋"; 
+        }
+        else if (item.mode.includes('restaurant')) { 
+            defaultWebLabel = "お店情報 / メニュー"; defaultImgLabel = "料理写真 / 内観"; 
+        }
+        else if (item.mode.includes('sight')) { 
+            defaultWebLabel = "観光情報を見る"; defaultImgLabel = "見どころ / 景色"; 
+        }
+        else if (item.mode.includes('prep')) { 
+            defaultWebLabel = "天気・情報を確認"; defaultImgLabel = "持ち物 / 朝食情報"; 
+        }
         
         renderWebLinks(item, webContainer, defaultWebLabel);
         renderImages(item, imageContainer, mediaContent, defaultImgLabel);
