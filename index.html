@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SAKUSAKU2026</title>
+    <title>北海道旅行 2026</title>
     
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/64/64572.png">
@@ -15,7 +15,7 @@
 <body>
 
     <header>
-        <h1><i class="fas fa-snowflake"></i> SAKUSAKU 2026</h1>
+        <h1><i class="fas fa-snowflake"></i> Hokkaido 2026</h1>
     </header>
 
     <main id="content-area">
@@ -32,7 +32,9 @@
                     <span id="status-label">NEXT SCHEDULE</span>
                     
                     <div class="info-block schedule-block">
-                        <h2 id="next-event">ロード中...</h2>
+                        <p id="status-description">Loading...</p>
+
+                        <h2 id="next-event"></h2>
                         <p id="next-detail" style="white-space: pre-wrap;"></p>
                     </div>
                     
@@ -73,8 +75,7 @@
         
         <div id="schedule" class="tab-content">
             <h2><i class="fas fa-list-ul"></i> 全日程リスト</h2>
-            <div class="timeline">
-                </div>
+            <div class="timeline"></div>
         </div>
 
         <div id="spots" class="tab-content">
