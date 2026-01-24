@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SAKUSAKU2026</title>
+    <title>北海道旅行 2026</title>
     
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/64/64572.png">
@@ -15,7 +15,7 @@
 <body>
 
     <header>
-        <h1><i class="fas fa-snowflake"></i> SAKUSAKUツアー2026</h1>
+        <h1><i class="fas fa-snowflake"></i> Hokkaido 2026</h1>
     </header>
 
     <main id="content-area">
@@ -36,12 +36,7 @@
                         <p id="next-detail" style="white-space: pre-wrap;"></p>
                     </div>
                     
-                    <div id="web-link-container" class="info-block web-block" style="display:none;">
-                        <p id="web-desc" class="block-label"></p>
-                        <a id="web-link-btn" href="#" target="_blank" class="event-link-btn">
-                            <i class="fas fa-external-link-alt"></i> <span id="web-link-text">Webサイトを開く</span>
-                        </a>
-                    </div>
+                    <div id="web-link-container" class="info-block web-block" style="display:none;"></div>
 
                     <div id="image-container" class="info-block image-block" style="display:none;">
                         <p id="image-desc" class="block-label"></p>
@@ -54,10 +49,18 @@
                     </div>
                     
                     <p id="card-counter" style="font-size:0.8em; opacity:0.6; margin-top:10px;">-- / --</p>
+                </div> <div class="nav-arrow right-arrow" onclick="changeCard(1)">
+                    <i class="fas fa-chevron-right"></i>
                 </div>
 
-                <div class="nav-arrow right-arrow" onclick="changeCard(1)">
-                    <i class="fas fa-chevron-right"></i>
+                <div id="speedometer-section" style="display:none;">
+                    <button id="gps-btn" onclick="toggleGPS()">
+                        <i class="fas fa-tachometer-alt"></i> 速度計測スタート
+                    </button>
+                    <div id="speed-display" style="display:none;">
+                        <span id="current-speed">0</span> <span class="unit">km/h</span>
+                        <p id="gps-status">GPS待機中...</p>
+                    </div>
                 </div>
 
             </div>
