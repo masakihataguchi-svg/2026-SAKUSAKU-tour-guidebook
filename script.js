@@ -1,15 +1,12 @@
 // スケジュールデータを格納する変数
 let scheduleData = [];
-// 現在表示しているカードのインデックス番号
 let displayIndex = 0;
-// 自動更新モードかどうかのフラグ
 let isAutoMode = true;
-// GPS監視ID
 let watchId = null;
 
 // --- 機能0: データ読み込み ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: 複数リンク対応版★");
+    console.log("★最新版JS読み込み成功: 新フォーマット対応版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -25,31 +22,47 @@ async function loadSchedule() {
         
         scheduleData = rows.map(row => {
             if (!row || row.trim() === "") return null;
-            // CSVのダブルクォート処理（改行入りセル対策）
-            // 簡易的な処理ですが、URL内の改行コードはLF(\n)として扱われることを想定
+            
+            // CSV処理
             const cleanRow = row.replace(/"/g, ''); 
             const columns = cleanRow.split(',');
 
+            // --- 列の特定ロジック (新フォーマット対応) ---
+            // A列: Mode, B列: Status, C列: Time ... と想定
+            // 「2026」が含まれる列を Time列 (tIdx) として探す
             let tIdx = 0;
-            if (columns[1] && columns[1].indexOf('2026') > -1) tIdx = 1; 
-            if (columns[tIdx] === undefined || columns[tIdx].indexOf('2026') === -1) return null;
+            if (columns[2] && columns[2].indexOf('2026') > -1) {
+                // 通常はC列(index 2)にあるはず
+                tIdx = 2;
+            } else {
+                // 念のため全列走査
+                tIdx = columns.findIndex(col => col && col.indexOf('2026') > -1);
+            }
+
+            if (tIdx === -1) return null; // 日付列が見つからない行は無視
+
+            // --- データマッピング ---
+            // A列 (tIdx - 2): Mode (システム用)
+            // B列 (tIdx - 1): Status Text (表示用)
+            // C列 (tIdx): Time
+            
+            let modeRaw = (tIdx >= 2 && columns[tIdx - 2]) ? columns[tIdx - 2].trim().toLowerCase() : "other";
+            if(modeRaw === "") modeRaw = "other";
+
+            const statusText = (tIdx >= 1 && columns[tIdx - 1]) ? columns[tIdx - 1].trim() : "";
 
             const time = columns[tIdx].trim();
             const title = columns[tIdx + 1] ? columns[tIdx + 1].trim() : "";
             const detail = columns[tIdx + 2] ? columns[tIdx + 2].trim() : "";
             
-            // ★複数対応：改行(\n)で分割して配列にするヘルパー関数
+            // ヘルパー関数
             const parseMulti = (descRaw, urlRaw) => {
                 const descs = descRaw ? descRaw.split('\n').map(s => s.trim()) : [];
                 const urls = urlRaw ? urlRaw.split('\n').map(s => s.trim()) : [];
                 const results = [];
-                // URLがある分だけループ
                 urls.forEach((url, i) => {
                     if(url.startsWith('http')) {
-                        results.push({
-                            url: url,
-                            desc: descs[i] || "" // 対応する説明がなければ空文字
-                        });
+                        results.push({ url: url, desc: descs[i] || "" });
                     }
                 });
                 return results;
@@ -57,15 +70,11 @@ async function loadSchedule() {
 
             const webLinks = parseMulti(columns[tIdx + 3], columns[tIdx + 4]);
             const images   = parseMulti(columns[tIdx + 5], columns[tIdx + 6]);
-            
-            // Status
-            let statusRaw = columns[tIdx + 7] ? columns[tIdx + 7].trim().toLowerCase() : "other";
-            if(statusRaw === "") statusRaw = "other";
 
-            return { time, title, detail, webLinks, images, status: statusRaw };
+            return { time, title, detail, webLinks, images, mode: modeRaw, statusText };
         }).filter(item => item !== null);
 
-        // 初期表示位置を決定
+        // 初期表示位置
         const now = new Date();
         const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime());
         
@@ -113,30 +122,29 @@ function renderScheduleList() {
         const ul = container.lastElementChild.querySelector('ul');
         const li = document.createElement('li');
         
-        // Statusアイコン
+        // Modeに応じたアイコン設定
         let statusIcon = "";
         let iconColor = "#999"; 
 
-        if (item.status.includes('moving')) {
+        if (item.mode.includes('moving')) {
             statusIcon = '<i class="fas fa-bolt"></i>'; 
             iconColor = "#ff4444";
-        } else if (item.status.includes('transfer')) {
+        } else if (item.mode.includes('transfer')) {
             statusIcon = '<i class="fas fa-walking"></i>';
             iconColor = "#f39c12";
-        } else if (item.status.includes('stay')) {
+        } else if (item.mode.includes('stay')) {
             statusIcon = '<i class="fas fa-map-pin"></i>';
             iconColor = "#2ecc71";
-        } else if (item.status.includes('prep')) {
+        } else if (item.mode.includes('prep')) {
             statusIcon = '<i class="fas fa-clipboard-list"></i>';
             iconColor = "#9b59b6";
-        } else if (item.status.includes('departure')) {
+        } else if (item.mode.includes('departure')) {
             statusIcon = '<i class="fas fa-train"></i>';
             iconColor = "#0055a4";
         } else {
             statusIcon = '<i class="fas fa-circle" style="font-size:0.5em; vertical-align:middle;"></i>'; 
         }
 
-        // Webリンクアイコン (複数ある場合は1つでもあれば表示)
         let linkIcon = "";
         if (item.webLinks.length > 0) {
             linkIcon = ` <i class="fas fa-external-link-alt" style="color:#0055a4; margin-left:5px; font-size:0.8em;"></i>`;
@@ -152,7 +160,7 @@ function renderScheduleList() {
     });
 }
 
-// --- 機能2: タイムキーパー (複数表示対応版) ---
+// --- 機能2: タイムキーパー (新フォーマット対応) ---
 function updateTimeKeeper() {
     if (scheduleData.length === 0) return;
 
@@ -165,6 +173,7 @@ function updateTimeKeeper() {
     
     // UI要素取得
     const statusLabel = document.getElementById('status-label');
+    const statusDesc = document.getElementById('status-description'); // 新規追加
     const nextEventDisplay = document.getElementById('next-event');
     const nextDetailDisplay = document.getElementById('next-detail');
     const timeRemainingDisplay = document.getElementById('time-remaining');
@@ -178,11 +187,11 @@ function updateTimeKeeper() {
     // リセット
     webContainer.style.display = "none";
     imageContainer.style.display = "none";
-    webContainer.innerHTML = ""; // 中身をクリア
-    mediaContent.innerHTML = ""; // 画像をクリア
+    webContainer.innerHTML = ""; 
+    mediaContent.innerHTML = ""; 
     speedSection.style.display = "none";
 
-    // ステータス表示
+    // 過去・未来ラベル
     if (diffMs < 0) {
         statusLabel.innerText = "FINISHED";
         statusLabel.style.color = "#ccc";
@@ -194,33 +203,34 @@ function updateTimeKeeper() {
         statusLabel.style.color = "#88ccff";
     }
 
-    // テキスト設定
+    // ★B列の内容を表示
+    statusDesc.innerText = item.statusText || "";
+
+    // 時間・タイトル
     const timeString = item.time.split(' ')[1] || '';
     nextEventDisplay.innerHTML = `<span class="event-time">${timeString}</span><span class="event-title">${item.title}</span>`;
     nextDetailDisplay.innerText = item.detail || "";
     cardCounter.innerText = `${displayIndex + 1} / ${scheduleData.length}`;
 
-    // ★Statusによる機能分岐
-    if (item.status.includes('moving')) {
+    // ★Modeによる機能分岐
+    if (item.mode.includes('moving')) {
         speedSection.style.display = "block";
-        // 移動中もリンクがあれば表示
         renderWebLinks(item, webContainer, "経路・マップ");
         renderImages(item, imageContainer, mediaContent, "観光ガイド・車窓");
 
     } else {
         if (watchId !== null) stopGPS();
 
-        // デフォルトラベル決定
         let defaultWebLabel = "Webサイトを開く";
         let defaultImgLabel = "画像情報";
 
-        if (item.status.includes('transfer')) {
+        if (item.mode.includes('transfer')) {
             defaultWebLabel = "構内図・地図を見る";
             defaultImgLabel = "座席表 / 時刻表";
-        } else if (item.status.includes('stay')) {
+        } else if (item.mode.includes('stay')) {
             defaultWebLabel = "公式サイト / 詳細";
             defaultImgLabel = "ガイドマップ";
-        } else if (item.status.includes('prep')) {
+        } else if (item.mode.includes('prep')) {
             defaultWebLabel = "天気・情報を確認";
             defaultImgLabel = "持ち物 / 朝食情報";
         }
@@ -251,45 +261,27 @@ function updateTimeKeeper() {
     document.querySelector('.right-arrow').style.display = (displayIndex === scheduleData.length - 1) ? 'none' : 'block';
 }
 
-// ★補助関数: Webリンクの描画（複数対応）
+// ★補助関数: Webリンク
 function renderWebLinks(item, container, defaultLabel) {
     if (item.webLinks && item.webLinks.length > 0) {
         container.style.display = "block";
-        
-        // ラベル（1つ目の項目の説明 or デフォルト）
-        // 複数ある場合は、各ボタンの中にラベルを入れるので、全体のラベルは非表示または代表ラベルにする
-        // ここではシンプルに、全体のラベルは表示せず、ボタンごとに文字を入れるスタイルにします
-        
         item.webLinks.forEach(link => {
             const btn = document.createElement('a');
             btn.className = 'event-link-btn';
             btn.href = link.url;
             btn.target = "_blank";
-            btn.style.marginTop = "10px"; // ボタン間の隙間
-            
-            // 説明があればそれを、なければデフォルトラベル
+            btn.style.marginTop = "10px"; 
             const btnText = link.desc || defaultLabel;
             btn.innerHTML = `<i class="fas fa-external-link-alt"></i> ${btnText}`;
-            
             container.appendChild(btn);
         });
     }
 }
 
-// ★補助関数: 画像の描画（複数対応）
+// ★補助関数: 画像
 function renderImages(item, container, contentArea, defaultLabel) {
     if (item.images && item.images.length > 0) {
         container.style.display = "block";
-        
-        // 画像エリア全体の説明ラベル（1つ目の説明を採用、なければデフォルト）
-        // 複数画像がある場合はラベルをどうするか悩みますが、一旦「画像ブロック」として表示
-        const labelP = document.createElement('p');
-        labelP.className = 'block-label';
-        labelP.innerText = item.images[0].desc || defaultLabel;
-        // contentAreaはクリア済みなので、その上にラベルを追加したいが、
-        // 構造上 image-container の直下にラベル、media-contentの中に画像を入れる
-        
-        // 既存のHTML構造を利用するため、DOM操作でラベルを更新
         const descElem = document.getElementById('image-desc');
         if(descElem) descElem.innerText = item.images[0].desc || defaultLabel;
 
@@ -299,20 +291,18 @@ function renderImages(item, container, contentArea, defaultLabel) {
             if (driveMatch) {
                 imgSrc = `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=s4000`;
             }
-            
             const imgTag = document.createElement('img');
             imgTag.src = imgSrc;
             imgTag.className = 'event-image';
             imgTag.alt = img.desc || "Event Image";
-            imgTag.style.marginBottom = "10px"; // 画像間の隙間
+            imgTag.style.marginBottom = "10px";
             imgTag.onclick = () => openModal(imgSrc, img.desc || defaultLabel);
-            
             contentArea.appendChild(imgTag);
         });
     }
 }
 
-// --- 機能3〜共通機能 (変更なし) ---
+// 共通機能
 function changeCard(direction) {
     const newIndex = displayIndex + direction;
     if (newIndex >= 0 && newIndex < scheduleData.length) {
@@ -334,21 +324,18 @@ function jumpToCard(index) {
 }
 function setupSwipe() {
     const swipeArea = document.getElementById('time-keeper');
-    let startX = 0;
-    let endX = 0;
+    let startX = 0; let endX = 0;
     swipeArea.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, { passive: true });
     swipeArea.addEventListener('touchmove', (e) => { endX = e.touches[0].clientX; }, { passive: true });
     swipeArea.addEventListener('touchend', () => {
         if (startX === 0 || endX === 0) return;
         const diff = startX - endX;
-        if (diff > 50) changeCard(1);
-        else if (diff < -50) changeCard(-1);
+        if (diff > 50) changeCard(1); else if (diff < -50) changeCard(-1);
         startX = 0; endX = 0;
     });
 }
 function toggleGPS() {
-    if (watchId === null) startGPS();
-    else stopGPS();
+    if (watchId === null) startGPS(); else stopGPS();
 }
 function startGPS() {
     if (!navigator.geolocation) { alert("GPS非対応です"); return; }
