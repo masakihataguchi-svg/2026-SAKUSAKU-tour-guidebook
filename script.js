@@ -3,12 +3,13 @@ let scheduleData = [];
 let displayIndex = 0;
 let isAutoMode = true;
 let watchId = null;
-// 通知済みリスト（重複通知防止用）
+let map = null;      // 地図オブジェクト
+let marker = null;   // マーカーオブジェクト
 let notifiedList = JSON.parse(localStorage.getItem('notifiedList')) || [];
 
 // --- 機能0: データ読み込み ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: 滞在ステータス細分化版★");
+    console.log("★最新版JS読み込み成功: 設定タブ＆マップ対応版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -24,24 +25,19 @@ async function loadSchedule() {
         
         scheduleData = rows.map(row => {
             if (!row || row.trim() === "") return null;
-            
             const cleanRow = row.replace(/"/g, ''); 
             const columns = cleanRow.split(',');
 
-            // 列特定ロジック
             let tIdx = 0;
             if (columns[2] && columns[2].indexOf('2026') > -1) {
                 tIdx = 2; 
             } else {
                 tIdx = columns.findIndex(col => col && col.indexOf('2026') > -1);
             }
-
             if (tIdx === -1) return null;
 
-            // データマッピング
             let modeRaw = (tIdx >= 2 && columns[tIdx - 2]) ? columns[tIdx - 2].trim().toLowerCase() : "other";
             if(modeRaw === "") modeRaw = "other";
-
             const statusText = (tIdx >= 1 && columns[tIdx - 1]) ? columns[tIdx - 1].trim() : "";
             const time = columns[tIdx].trim();
             const title = columns[tIdx + 1] ? columns[tIdx + 1].trim() : "";
@@ -59,14 +55,12 @@ async function loadSchedule() {
 
             const webLinks = parseMulti(columns[tIdx + 3], columns[tIdx + 4]);
             const images   = parseMulti(columns[tIdx + 5], columns[tIdx + 6]);
-
             const notifyTime = columns[tIdx + 7] ? columns[tIdx + 7].trim() : "";
             const notifyMsg  = columns[tIdx + 8] ? columns[tIdx + 8].trim() : "";
 
             return { time, title, detail, webLinks, images, mode: modeRaw, statusText, notifyTime, notifyMsg };
         }).filter(item => item !== null);
 
-        // 初期表示位置
         const now = new Date();
         const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime());
         if (nextIdx !== -1) displayIndex = nextIdx;
@@ -83,11 +77,10 @@ async function loadSchedule() {
     }
 }
 
-// --- 機能1: 日程表リストの描画 ---
+// --- 機能1: 日程表リスト ---
 function renderScheduleList() {
     const container = document.querySelector('#schedule .timeline');
     if (!container || scheduleData.length === 0) return;
-
     container.innerHTML = '';
     let currentDayStr = "";
     const firstDateObj = new Date(scheduleData[0].time.split(' ')[0]);
@@ -111,38 +104,30 @@ function renderScheduleList() {
         const ul = container.lastElementChild.querySelector('ul');
         const li = document.createElement('li');
         
-        // ★アイコン設定 (細分化・強化版)
         let statusIcon = '<i class="fas fa-circle" style="font-size:0.5em; vertical-align:middle;"></i>';
         let iconColor = "#999"; 
 
-        // 移動系
-        if (item.mode.includes('walking')) { statusIcon = '<i class="fas fa-walking"></i>'; iconColor = "#2ecc71"; } // 徒歩(緑)
-        else if (item.mode.includes('driving')) { statusIcon = '<i class="fas fa-car"></i>'; iconColor = "#3498db"; } // 車(青)
-        else if (item.mode.includes('railway')) { statusIcon = '<i class="fas fa-train"></i>'; iconColor = "#e74c3c"; } // 鉄道(赤)
-        else if (item.mode.includes('plane')) { statusIcon = '<i class="fas fa-plane"></i>'; iconColor = "#9b59b6"; } // 飛行機(紫)
-        else if (item.mode.includes('moving')) { statusIcon = '<i class="fas fa-bolt"></i>'; iconColor = "#ff4444"; } // その他移動(赤)
-        else if (item.mode.includes('transfer')) { statusIcon = '<i class="fas fa-exchange-alt"></i>'; iconColor = "#f39c12"; } // 乗換(橙)
-        
-        // 滞在系 (★ここを追加・変更)
-        else if (item.mode.includes('hotel')) { statusIcon = '<i class="fas fa-hotel"></i>'; iconColor = "#8e44ad"; } // ホテル(紫)
-        else if (item.mode.includes('restaurant')) { statusIcon = '<i class="fas fa-utensils"></i>'; iconColor = "#e67e22"; } // 食事(橙)
-        else if (item.mode.includes('sight')) { statusIcon = '<i class="fas fa-camera"></i>'; iconColor = "#16a085"; } // 観光(深緑)
-        else if (item.mode.includes('stay')) { statusIcon = '<i class="fas fa-map-pin"></i>'; iconColor = "#16a085"; } // その他滞在
-        
-        // その他
-        else if (item.mode.includes('prep')) { statusIcon = '<i class="fas fa-clipboard-list"></i>'; iconColor = "#34495e"; } // 準備(紺)
-        else if (item.mode.includes('departure')) { statusIcon = '<i class="fas fa-flag"></i>'; iconColor = "#0055a4"; } // 出発(青)
+        if (item.mode.includes('walking')) { statusIcon = '<i class="fas fa-walking"></i>'; iconColor = "#2ecc71"; }
+        else if (item.mode.includes('driving')) { statusIcon = '<i class="fas fa-car"></i>'; iconColor = "#3498db"; }
+        else if (item.mode.includes('railway')) { statusIcon = '<i class="fas fa-train"></i>'; iconColor = "#e74c3c"; }
+        else if (item.mode.includes('plane')) { statusIcon = '<i class="fas fa-plane"></i>'; iconColor = "#9b59b6"; }
+        else if (item.mode.includes('moving')) { statusIcon = '<i class="fas fa-bolt"></i>'; iconColor = "#ff4444"; }
+        else if (item.mode.includes('transfer')) { statusIcon = '<i class="fas fa-exchange-alt"></i>'; iconColor = "#f39c12"; }
+        else if (item.mode.includes('hotel')) { statusIcon = '<i class="fas fa-hotel"></i>'; iconColor = "#8e44ad"; }
+        else if (item.mode.includes('restaurant')) { statusIcon = '<i class="fas fa-utensils"></i>'; iconColor = "#e67e22"; }
+        else if (item.mode.includes('sight')) { statusIcon = '<i class="fas fa-camera"></i>'; iconColor = "#16a085"; }
+        else if (item.mode.includes('stay')) { statusIcon = '<i class="fas fa-map-pin"></i>'; iconColor = "#16a085"; }
+        else if (item.mode.includes('prep')) { statusIcon = '<i class="fas fa-clipboard-list"></i>'; iconColor = "#34495e"; }
+        else if (item.mode.includes('departure')) { statusIcon = '<i class="fas fa-flag"></i>'; iconColor = "#0055a4"; }
 
         let linkIcon = "";
         if (item.webLinks.length > 0) linkIcon = ` <i class="fas fa-external-link-alt" style="color:#0055a4; margin-left:5px; font-size:0.8em;"></i>`;
-        
         let bellIcon = "";
         if (item.notifyTime) bellIcon = ` <i class="fas fa-bell" style="color:#ffd700; margin-left:5px; font-size:0.8em;"></i>`;
 
         li.innerHTML = `<span class="time">${timePart}</span> 
                         <span style="color:${iconColor}; width:20px; display:inline-block; text-align:center; margin-right:5px;">${statusIcon}</span>
                         ${item.title}${linkIcon}${bellIcon}`;
-        
         li.onclick = () => jumpToCard(index);
         li.style.cursor = "pointer";
         ul.appendChild(li);
@@ -154,12 +139,10 @@ function updateTimeKeeper() {
     if (scheduleData.length === 0) return;
     const item = scheduleData[displayIndex];
     if (!item) return;
-
     const now = new Date();
     const eventTime = new Date(item.time);
     const diffMs = eventTime - now; 
     
-    // UI取得
     const statusLabel = document.getElementById('status-label');
     const statusDesc = document.getElementById('status-description');
     const nextEventDisplay = document.getElementById('next-event');
@@ -171,13 +154,11 @@ function updateTimeKeeper() {
     const mediaContent = document.getElementById('media-content');
     const speedSection = document.getElementById('speedometer-section');
 
-    // リセット
     webContainer.style.display = "none";
     imageContainer.style.display = "none";
     webContainer.innerHTML = ""; mediaContent.innerHTML = ""; 
     speedSection.style.display = "none";
 
-    // ラベル
     if (diffMs < 0) {
         statusLabel.innerText = "FINISHED"; statusLabel.style.color = "#ccc";
     } else if (isAutoMode && diffMs > 0) {
@@ -192,7 +173,6 @@ function updateTimeKeeper() {
     nextDetailDisplay.innerText = item.detail || "";
     cardCounter.innerText = `${displayIndex + 1} / ${scheduleData.length}`;
 
-    // ★Mode分岐
     const movingModes = ['moving', 'walking', 'driving', 'railway', 'plane'];
     const isMoving = movingModes.some(m => item.mode.includes(m));
 
@@ -202,32 +182,18 @@ function updateTimeKeeper() {
         renderImages(item, imageContainer, mediaContent, "観光ガイド・車窓");
     } else {
         if (watchId !== null) stopGPS();
-        
-        // ★デフォルトラベルの設定 (滞在系を細分化)
         let defaultWebLabel = "Webサイトを開く";
         let defaultImgLabel = "画像情報";
-        
-        if (item.mode.includes('transfer')) { 
-            defaultWebLabel = "構内図・地図を見る"; defaultImgLabel = "座席表 / 時刻表"; 
-        }
-        else if (item.mode.includes('hotel')) { 
-            defaultWebLabel = "ホテル公式サイト"; defaultImgLabel = "施設案内 / 部屋"; 
-        }
-        else if (item.mode.includes('restaurant')) { 
-            defaultWebLabel = "お店情報 / メニュー"; defaultImgLabel = "料理写真 / 内観"; 
-        }
-        else if (item.mode.includes('sight')) { 
-            defaultWebLabel = "観光情報を見る"; defaultImgLabel = "見どころ / 景色"; 
-        }
-        else if (item.mode.includes('prep')) { 
-            defaultWebLabel = "天気・情報を確認"; defaultImgLabel = "持ち物 / 朝食情報"; 
-        }
+        if (item.mode.includes('transfer')) { defaultWebLabel = "構内図・地図を見る"; defaultImgLabel = "座席表 / 時刻表"; }
+        else if (item.mode.includes('hotel')) { defaultWebLabel = "ホテル公式サイト"; defaultImgLabel = "施設案内 / 部屋"; }
+        else if (item.mode.includes('restaurant')) { defaultWebLabel = "お店情報 / メニュー"; defaultImgLabel = "料理写真 / 内観"; }
+        else if (item.mode.includes('sight')) { defaultWebLabel = "観光情報を見る"; defaultImgLabel = "見どころ / 景色"; }
+        else if (item.mode.includes('prep')) { defaultWebLabel = "天気・情報を確認"; defaultImgLabel = "持ち物 / 朝食情報"; }
         
         renderWebLinks(item, webContainer, defaultWebLabel);
         renderImages(item, imageContainer, mediaContent, defaultImgLabel);
     }
 
-    // カウントダウン
     const absDiffMs = Math.abs(diffMs);
     const diffDays = Math.floor(absDiffMs / (1000 * 60 * 60 * 24));
     const diffHrs = Math.floor((absDiffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -244,6 +210,7 @@ function updateTimeKeeper() {
     document.querySelector('.right-arrow').style.display = (displayIndex === scheduleData.length - 1) ? 'none' : 'block';
 }
 
+// 補助関数省略（renderWebLinks, renderImagesは変更なし）
 function renderWebLinks(item, container, defaultLabel) {
     if (item.webLinks && item.webLinks.length > 0) {
         container.style.display = "block";
@@ -273,51 +240,26 @@ function renderImages(item, container, contentArea, defaultLabel) {
     }
 }
 
-// --- 機能6: 通知システム (デバッグ機能付き) ---
+// --- 機能6: 通知システム ---
 function requestNotificationPermission() {
-    if (!("Notification" in window)) {
-        alert("【エラー】このブラウザは通知機能に対応していません。\n(iOSの場合はiOS 16.4以上が必要です)");
-        return;
-    }
-    if (Notification.permission === "granted") {
-        alert("通知は既に許可されています。\nテスト通知を送信します。");
-        new Notification("テスト通知", { body: "通知機能は正常です！" });
-        checkNotificationPermission();
-        return;
-    }
-    if (Notification.permission === "denied") {
-        alert("【通知がブロックされています】\nブラウザまたはスマホの設定から、このアプリの通知を許可してください。");
-        return;
-    }
-    alert("通知の許可をリクエストします...\n(この後表示されるポップアップで「許可」を押してください)");
-    try {
-        Notification.requestPermission().then(permission => {
-            if (permission === "granted") {
-                checkNotificationPermission();
-                new Notification("設定完了", { body: "通知がONになりました！" });
-            } else {
-                alert("通知が許可されませんでした。");
-            }
-        });
-    } catch (e) {
-        alert("エラーが発生しました: " + e);
-    }
+    if (!("Notification" in window)) { alert("非対応ブラウザです"); return; }
+    if (Notification.permission === "granted") { alert("通知は既に許可されています"); checkNotificationPermission(); return; }
+    if (Notification.permission === "denied") { alert("通知がブロックされています。設定から許可してください"); return; }
+    Notification.requestPermission().then(permission => {
+        if (permission === "granted") { checkNotificationPermission(); new Notification("設定完了", { body: "通知がONになりました！" }); }
+    });
 }
 function checkNotificationPermission() {
     const statusText = document.getElementById('notify-status');
     const btn = document.getElementById('notify-btn');
     if (!statusText || !btn) return;
-    if (!("Notification" in window)) {
-        statusText.innerText = "通知機能: 非対応"; btn.disabled = true; return;
-    }
+    if (!("Notification" in window)) { statusText.innerText = "通知機能: 非対応"; btn.disabled = true; return; }
     if (Notification.permission === "granted") {
         statusText.innerText = "通知設定: 許可済み (OK)"; statusText.style.color = "#88ff88";
         btn.innerHTML = '<i class="fas fa-bell"></i> 設定済み'; btn.style.opacity = "0.5";
     } else if (Notification.permission === "denied") {
         statusText.innerText = "通知設定: ブロックされています"; statusText.style.color = "#ff8888";
-    } else {
-        statusText.innerText = "通知設定: 未設定";
-    }
+    } else { statusText.innerText = "通知設定: 未設定"; }
 }
 function checkAndNotify() {
     if (Notification.permission !== "granted") return;
@@ -329,20 +271,76 @@ function checkAndNotify() {
         if (diff >= 0 && diff < 60000) {
             const notifyKey = item.notifyTime + item.notifyMsg;
             if (!notifiedList.includes(notifyKey)) {
-                new Notification("Hokkaido 2026", {
-                    body: item.notifyMsg,
-                    icon: "https://cdn-icons-png.flaticon.com/512/64/64572.png"
-                });
-                notifiedList.push(notifyKey);
-                localStorage.setItem('notifiedList', JSON.stringify(notifiedList));
+                new Notification("Hokkaido 2026", { body: item.notifyMsg, icon: "https://cdn-icons-png.flaticon.com/512/64/64572.png" });
+                notifiedList.push(notifyKey); localStorage.setItem('notifiedList', JSON.stringify(notifiedList));
             }
         }
     });
 }
 
-// 共通・イベントリスナー
-function changeCard(direction) {
-    const newIndex = displayIndex + direction;
+// --- GPS & 地図機能 (改良版) ---
+function toggleGPS() {
+    if (watchId === null) startGPS(); else stopGPS();
+}
+function startGPS() {
+    if (!navigator.geolocation) { alert("GPS非対応です"); return; }
+    const btn = document.getElementById('gps-btn'); 
+    const display = document.getElementById('speed-display'); 
+    const status = document.getElementById('gps-status');
+    const mapContainer = document.getElementById('live-map-container');
+
+    btn.classList.add('active'); 
+    btn.innerHTML = '<i class="fas fa-stop"></i> 計測停止 (地図OFF)'; 
+    display.style.display = 'block'; 
+    status.innerText = "GPS信号を探しています...";
+    
+    // 地図エリアを表示
+    mapContainer.style.display = 'block';
+    
+    // 地図の初期化 (初回のみ)
+    if (map === null) {
+        map = L.map('live-map').setView([43.064, 141.346], 13); // 札幌中心
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+        marker = L.marker([43.064, 141.346]).addTo(map);
+    }
+    
+    // 地図の再描画対策 (display:noneから復帰した時用)
+    setTimeout(() => { map.invalidateSize(); }, 100);
+
+    watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+            const speedKmh = pos.coords.speed ? (pos.coords.speed * 3.6).toFixed(0) : 0;
+            document.getElementById('current-speed').innerText = speedKmh;
+            status.innerText = `精度: ±${Math.round(pos.coords.accuracy)}m`;
+            
+            // 地図更新
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            const newLatLng = new L.LatLng(lat, lng);
+            marker.setLatLng(newLatLng);
+            map.setView(newLatLng); // 中心を追従
+        },
+        (err) => { console.error(err); status.innerText = "GPS取得失敗"; },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+}
+function stopGPS() {
+    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    const btn = document.getElementById('gps-btn'); 
+    const display = document.getElementById('speed-display');
+    const mapContainer = document.getElementById('live-map-container');
+
+    if(btn) { btn.classList.remove('active'); btn.innerHTML = '<i class="fas fa-tachometer-alt"></i> 速度計測＆マップ表示'; }
+    if(display) { display.style.display = 'none'; }
+    // 地図は非表示にするがインスタンスは残す
+    if(mapContainer) mapContainer.style.display = 'none';
+}
+
+// 共通
+function changeCard(dir) {
+    const newIndex = displayIndex + dir;
     if (newIndex >= 0 && newIndex < scheduleData.length) {
         displayIndex = newIndex; isAutoMode = false;
         const swipeArea = document.getElementById('swipe-area');
@@ -355,37 +353,14 @@ function jumpToCard(index) {
     switchTab('home'); updateTimeKeeper(); window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function setupSwipe() {
-    const swipeArea = document.getElementById('time-keeper');
-    let startX = 0; let endX = 0;
+    const swipeArea = document.getElementById('time-keeper'); let startX = 0; let endX = 0;
     swipeArea.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, { passive: true });
     swipeArea.addEventListener('touchmove', (e) => { endX = e.touches[0].clientX; }, { passive: true });
     swipeArea.addEventListener('touchend', () => {
-        if (startX === 0 || endX === 0) return;
-        const diff = startX - endX;
+        if (startX === 0 || endX === 0) return; const diff = startX - endX;
         if (diff > 50) changeCard(1); else if (diff < -50) changeCard(-1);
         startX = 0; endX = 0;
     });
-}
-function toggleGPS() { if (watchId === null) startGPS(); else stopGPS(); }
-function startGPS() {
-    if (!navigator.geolocation) { alert("GPS非対応です"); return; }
-    const btn = document.getElementById('gps-btn'); const display = document.getElementById('speed-display'); const status = document.getElementById('gps-status');
-    btn.classList.add('active'); btn.innerHTML = '<i class="fas fa-stop"></i> 計測ストップ'; display.style.display = 'block'; status.innerText = "GPS信号を探しています...";
-    watchId = navigator.geolocation.watchPosition(
-        (pos) => {
-            const speedKmh = pos.coords.speed ? (pos.coords.speed * 3.6).toFixed(0) : 0;
-            document.getElementById('current-speed').innerText = speedKmh;
-            status.innerText = `精度: ±${Math.round(pos.coords.accuracy)}m (更新中)`;
-        },
-        (err) => { console.error(err); status.innerText = "GPS信号が弱いか、権限がありません"; },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-}
-function stopGPS() {
-    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-    const btn = document.getElementById('gps-btn'); const display = document.getElementById('speed-display');
-    if(btn) { btn.classList.remove('active'); btn.innerHTML = '<i class="fas fa-tachometer-alt"></i> 速度計測スタート'; }
-    if(display) { display.style.display = 'none'; }
 }
 function openModal(src, caption) {
     const modal = document.getElementById("image-modal");
@@ -401,26 +376,21 @@ function switchTab(tabId) {
     if(typeof event !== 'undefined' && event.currentTarget) event.currentTarget.classList.add('active');
 }
 function filterSpots() {
-    const input = document.getElementById('searchBox');
-    if (!input) return;
-    const filter = input.value.toUpperCase();
-    const li = document.getElementById('spotList').getElementsByTagName('li');
+    const input = document.getElementById('searchBox'); if (!input) return;
+    const filter = input.value.toUpperCase(); const li = document.getElementById('spotList').getElementsByTagName('li');
     for (let i = 0; i < li.length; i++) {
         const text = li[i].textContent || li[i].innerText;
         li[i].style.display = (text.toUpperCase().indexOf(filter) > -1) ? "" : "none";
     }
 }
-
 document.addEventListener('DOMContentLoaded', function() {
     loadSchedule();
     setInterval(() => {
         if (isAutoMode) {
-             const now = new Date();
-             const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime());
+             const now = new Date(); const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime());
              if (nextIdx !== -1 && nextIdx !== displayIndex) displayIndex = nextIdx;
         }
-        updateTimeKeeper();
-        checkAndNotify();
+        updateTimeKeeper(); checkAndNotify();
     }, 60000);
     setTimeout(checkAndNotify, 3000);
 });
