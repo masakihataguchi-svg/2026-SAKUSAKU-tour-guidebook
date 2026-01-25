@@ -1,11 +1,10 @@
 {
-  "name": "SAKUSAKU2026",
+  "name": "SAKUSAKU 2026",
   "short_name": "SAKUSAKU",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f0f8ff",
+  "background_color": "#0055a4",
   "theme_color": "#0055a4",
-  "orientation": "portrait",
   "icons": [
     {
       "src": "icon.png",
