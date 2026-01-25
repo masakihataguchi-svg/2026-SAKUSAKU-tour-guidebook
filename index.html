@@ -11,14 +11,13 @@
     <link rel="stylesheet" href="style.css">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
     <header>
-        <h1><i class="fas fa-snowflake"></i> Hokkaido 2026</h1>
+        <h1><i class="fas fa-snowflake"></i> SAKUSAKU 2026</h1>
     </header>
 
     <main id="content-area">
@@ -32,7 +31,7 @@
                 </div>
 
                 <div id="swipe-area" class="current-status">
-                    <span id="status-label">NEXT SCHEDULE</span>
+                    <span id="status-label">CURRENT EVENT</span>
                     
                     <div class="info-block schedule-block">
                         <p id="status-description">Loading...</p>
@@ -67,14 +66,13 @@
                     <div id="speed-display" style="display:none;">
                         <span id="current-speed">0</span> <span class="unit">km/h</span>
                         <p id="gps-status">GPS待機中...</p>
-                        
                         <div id="live-map-container" style="margin-top:15px; border-radius:8px; overflow:hidden; display:none;">
                             <div id="live-map" style="height: 250px; width: 100%;"></div>
                         </div>
                     </div>
                 </div>
 
-                </div>
+            </div>
             
             <div style="text-align:center; margin-top:50px; color:#aaa;">
                 <i class="fas fa-map-marked-alt" style="font-size: 3em; opacity:0.2;"></i>
@@ -87,38 +85,70 @@
             <div class="timeline"></div>
         </div>
 
-        <div id="spots" class="tab-content">
-            <h2><i class="fas fa-search"></i> スポット検索</h2>
-            <input type="text" id="searchBox" placeholder="場所名で検索..." onkeyup="filterSpots()">
-            <ul id="spotList">
-                 <li class="spot-item">
-                    <strong>ジンギスカンだるま</strong>
-                    <p>混雑必至。防寒対策して並ぶ。</p>
-                    <a href="https://www.google.com/maps/search/?api=1&query=ジンギスカンだるま" target="_blank" class="map-btn">Map</a>
-                </li>
-                 <li class="spot-item">
-                    <strong>小樽運河</strong>
-                    <p>夜景が綺麗。クルーズもおすすめ。</p>
-                    <a href="https://www.google.com/maps/search/?api=1&query=小樽運河" target="_blank" class="map-btn">Map</a>
-                </li>
-            </ul>
+        <div id="album" class="tab-content">
+            <h2><i class="fas fa-images"></i> 共有アルバム</h2>
+            
+            <div class="info-block" style="background:white; color:#333; border:1px solid #ddd; text-align:center; padding:30px 20px;">
+                <i class="fas fa-camera-retro" style="font-size: 4em; color:#0055a4; margin-bottom:20px;"></i>
+                <h3>SAKUSAKU 2026</h3>
+                <p>旅の写真はここに集めよう！</p>
+                <p style="font-size:0.9em; color:#666; margin-bottom:25px;">Google Photos Shared Album</p>
+                
+                <a href="https://photos.app.goo.gl/quH9XzhodmfTwAGf7" target="_blank" class="upload-btn" style="background-color:#4285f4;">
+                    <i class="fas fa-external-link-alt"></i> アルバムを開く
+                </a>
+            </div>
+            
+            <p style="text-align:center; font-size:0.8em; color:#999; margin-top:20px;">
+                ※リンクをタップするとGoogleフォトアプリが開きます
+            </p>
         </div>
 
-        <div id="memo" class="tab-content">
-            <div class="photo-upload-section">
-                <h3><i class="fas fa-camera"></i> 思い出アルバム</h3>
-                <p>旅の写真はここにアップロード！</p>
-                <a href="#" target="_blank" class="upload-btn">Googleフォトを開く</a>
+        <div id="documents" class="tab-content">
+            <h2><i class="fas fa-file-alt"></i> 予約確認書類</h2>
+            
+            <div class="info-block" style="background:white; color:#333; border:1px solid #ddd;">
+                <h3 style="border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:10px;">
+                    <i class="fas fa-plane"></i> 航空券・移動
+                </h3>
+                <ul class="checklist" style="list-style:none; padding:0;">
+                    <li style="padding:10px 0; border-bottom:1px solid #eee;">
+                        <a href="#" target="_blank" style="text-decoration:none; color:#333; display:block;">
+                            <i class="fas fa-file-pdf" style="color:#e74c3c; margin-right:10px;"></i> 
+                            行きのeチケット (PDF)
+                            <i class="fas fa-chevron-right" style="float:right; color:#ccc;"></i>
+                        </a>
+                    </li>
+                    <li style="padding:10px 0;">
+                        <a href="#" target="_blank" style="text-decoration:none; color:#333; display:block;">
+                            <i class="fas fa-file-pdf" style="color:#e74c3c; margin-right:10px;"></i> 
+                            帰りのeチケット (PDF)
+                            <i class="fas fa-chevron-right" style="float:right; color:#ccc;"></i>
+                        </a>
+                    </li>
+                </ul>
             </div>
-            <hr>
-            <h2>持ち物チェック</h2>
-            <ul class="checklist">
-                <li><input type="checkbox"> 航空券 (eチケット)</li>
-                <li><input type="checkbox"> モバイルバッテリー</li>
-                <li><input type="checkbox"> 充電器・ケーブル</li>
-                <li><input type="checkbox"> 常備薬</li>
-                <li><input type="checkbox"> 防寒具（手袋・マフラー）</li>
-            </ul>
+
+            <div class="info-block" style="background:white; color:#333; border:1px solid #ddd; margin-top:20px;">
+                <h3 style="border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:10px;">
+                    <i class="fas fa-hotel"></i> ホテル・宿泊
+                </h3>
+                <ul class="checklist" style="list-style:none; padding:0;">
+                    <li style="padding:10px 0;">
+                        <a href="#" target="_blank" style="text-decoration:none; color:#333; display:block;">
+                            <i class="fas fa-file-pdf" style="color:#e74c3c; margin-right:10px;"></i> 
+                            ホテル予約確認書 (PDF)
+                            <i class="fas fa-chevron-right" style="float:right; color:#ccc;"></i>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <p style="text-align:center; margin-top:20px;">
+                <a href="https://drive.google.com/" target="_blank" class="map-btn" style="background:#333;">
+                    <i class="fab fa-google-drive"></i> Googleドライブを開く
+                </a>
+            </p>
         </div>
 
         <div id="settings" class="tab-content">
@@ -137,7 +167,7 @@
 
             <div class="info-block" style="background:white; color:#333; border:1px solid #ddd;">
                 <h3><i class="fas fa-info-circle"></i> アプリ情報</h3>
-                <p>Version 2.1 (Map Edition)</p>
+                <p>Version 2.4 (Album & Docs)</p>
                 <p style="font-size:0.8em; color:#999;">Snow icon made by Freepik</p>
             </div>
         </div>
@@ -159,11 +189,11 @@
         <button onclick="switchTab('schedule')" class="nav-btn">
             <i class="fas fa-calendar-alt"></i><br>日程
         </button>
-        <button onclick="switchTab('spots')" class="nav-btn">
-            <i class="fas fa-map-marker-alt"></i><br>探す
+        <button onclick="switchTab('album')" class="nav-btn">
+            <i class="fas fa-images"></i><br>アルバム
         </button>
-        <button onclick="switchTab('memo')" class="nav-btn">
-            <i class="fas fa-book"></i><br>メモ
+        <button onclick="switchTab('documents')" class="nav-btn">
+            <i class="fas fa-file-alt"></i><br>書類
         </button>
         <button onclick="switchTab('settings')" class="nav-btn">
             <i class="fas fa-cog"></i><br>設定
