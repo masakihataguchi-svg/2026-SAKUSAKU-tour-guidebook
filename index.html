@@ -6,13 +6,14 @@
     <title>北海道旅行 2026</title>
     
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/64/64572.png">
+    <link rel="apple-touch-icon" href="icon.png">
     
     <link rel="stylesheet" href="style.css">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
@@ -35,7 +36,6 @@
                     
                     <div class="info-block schedule-block">
                         <p id="status-description">Loading...</p>
-
                         <h2 id="next-event"></h2>
                         <p id="next-detail" style="white-space: pre-wrap;"></p>
                     </div>
@@ -53,28 +53,28 @@
                     </div>
                     
                     <p id="card-counter" style="font-size:0.8em; opacity:0.6; margin-top:10px;">-- / --</p>
-                </div> <div class="nav-arrow right-arrow" onclick="changeCard(1)">
+                </div> 
+
+                <div class="nav-arrow right-arrow" onclick="changeCard(1)">
                     <i class="fas fa-chevron-right"></i>
                 </div>
 
                 <div id="speedometer-section" style="display:none;">
                     <button id="gps-btn" onclick="toggleGPS()">
-                        <i class="fas fa-tachometer-alt"></i> 速度計測スタート
+                        <i class="fas fa-tachometer-alt"></i> 速度計測＆マップ表示
                     </button>
+                    
                     <div id="speed-display" style="display:none;">
                         <span id="current-speed">0</span> <span class="unit">km/h</span>
                         <p id="gps-status">GPS待機中...</p>
+                        
+                        <div id="live-map-container" style="margin-top:15px; border-radius:8px; overflow:hidden; display:none;">
+                            <div id="live-map" style="height: 250px; width: 100%;"></div>
+                        </div>
                     </div>
                 </div>
 
-                <div id="notification-section" style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.3); padding-top:15px;">
-                    <button id="notify-btn" onclick="requestNotificationPermission()">
-                        <i class="fas fa-bell"></i> 通知をONにする
-                    </button>
-                    <p id="notify-status" style="font-size:0.8em; opacity:0.7; margin-top:5px;">通知設定: 未設定</p>
                 </div>
-
-            </div>
             
             <div style="text-align:center; margin-top:50px; color:#aaa;">
                 <i class="fas fa-map-marked-alt" style="font-size: 3em; opacity:0.2;"></i>
@@ -84,8 +84,7 @@
         
         <div id="schedule" class="tab-content">
             <h2><i class="fas fa-list-ul"></i> 全日程リスト</h2>
-            <div class="timeline">
-                </div>
+            <div class="timeline"></div>
         </div>
 
         <div id="spots" class="tab-content">
@@ -121,6 +120,28 @@
                 <li><input type="checkbox"> 防寒具（手袋・マフラー）</li>
             </ul>
         </div>
+
+        <div id="settings" class="tab-content">
+            <h2><i class="fas fa-cog"></i> 設定</h2>
+            
+            <div class="info-block" style="background:white; color:#333; border:1px solid #ddd;">
+                <h3><i class="fas fa-bell"></i> 通知設定</h3>
+                <p style="font-size:0.9em; color:#666;">スケジュールの通知を受け取ります。</p>
+                <div style="margin-top:15px; text-align:center;">
+                    <button id="notify-btn" onclick="requestNotificationPermission()" class="upload-btn" style="background:#0055a4;">
+                        <i class="fas fa-bell"></i> 通知をONにする
+                    </button>
+                    <p id="notify-status" style="font-size:0.8em; margin-top:10px;">通知設定: 未設定</p>
+                </div>
+            </div>
+
+            <div class="info-block" style="background:white; color:#333; border:1px solid #ddd;">
+                <h3><i class="fas fa-info-circle"></i> アプリ情報</h3>
+                <p>Version 2.1 (Map Edition)</p>
+                <p style="font-size:0.8em; color:#999;">Snow icon made by Freepik</p>
+            </div>
+        </div>
+
     </main>
 
     <div id="image-modal" class="modal" onclick="closeModal()">
@@ -143,6 +164,9 @@
         </button>
         <button onclick="switchTab('memo')" class="nav-btn">
             <i class="fas fa-book"></i><br>メモ
+        </button>
+        <button onclick="switchTab('settings')" class="nav-btn">
+            <i class="fas fa-cog"></i><br>設定
         </button>
     </nav>
 
