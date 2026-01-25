@@ -3,13 +3,13 @@ let scheduleData = [];
 let displayIndex = 0;
 let isAutoMode = true;
 let watchId = null;
-let map = null;      // 地図オブジェクト
-let marker = null;   // マーカーオブジェクト
+let map = null;      
+let marker = null;   
 let notifiedList = JSON.parse(localStorage.getItem('notifiedList')) || [];
 
 // --- 機能0: データ読み込み ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: 設定タブ＆マップ対応版★");
+    console.log("★最新版JS読み込み成功: アルバム＆書類対応版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -143,6 +143,8 @@ function updateTimeKeeper() {
     const eventTime = new Date(item.time);
     const diffMs = eventTime - now; 
     
+    const upcomingIndex = scheduleData.findIndex(d => new Date(d.time).getTime() > now.getTime());
+
     const statusLabel = document.getElementById('status-label');
     const statusDesc = document.getElementById('status-description');
     const nextEventDisplay = document.getElementById('next-event');
@@ -160,11 +162,14 @@ function updateTimeKeeper() {
     speedSection.style.display = "none";
 
     if (diffMs < 0) {
-        statusLabel.innerText = "FINISHED"; statusLabel.style.color = "#ccc";
-    } else if (isAutoMode && diffMs > 0) {
-        statusLabel.innerText = "NEXT SCHEDULE"; statusLabel.style.color = "white";
+        statusLabel.innerText = "FINISHED"; 
+        statusLabel.style.color = "#ccc";
+    } else if (upcomingIndex !== -1 && displayIndex === upcomingIndex) {
+        statusLabel.innerText = "CURRENT EVENT"; 
+        statusLabel.style.color = "white";
     } else {
-        statusLabel.innerText = "FUTURE EVENT"; statusLabel.style.color = "#88ccff";
+        statusLabel.innerText = "FUTURE EVENT"; 
+        statusLabel.style.color = "#88ccff";
     }
 
     statusDesc.innerText = item.statusText || "";
@@ -210,7 +215,6 @@ function updateTimeKeeper() {
     document.querySelector('.right-arrow').style.display = (displayIndex === scheduleData.length - 1) ? 'none' : 'block';
 }
 
-// 補助関数省略（renderWebLinks, renderImagesは変更なし）
 function renderWebLinks(item, container, defaultLabel) {
     if (item.webLinks && item.webLinks.length > 0) {
         container.style.display = "block";
@@ -271,14 +275,14 @@ function checkAndNotify() {
         if (diff >= 0 && diff < 60000) {
             const notifyKey = item.notifyTime + item.notifyMsg;
             if (!notifiedList.includes(notifyKey)) {
-                new Notification("Hokkaido 2026", { body: item.notifyMsg, icon: "https://cdn-icons-png.flaticon.com/512/64/64572.png" });
+                new Notification("SAKUSAKU 2026", { body: item.notifyMsg, icon: "https://cdn-icons-png.flaticon.com/512/64/64572.png" });
                 notifiedList.push(notifyKey); localStorage.setItem('notifiedList', JSON.stringify(notifiedList));
             }
         }
     });
 }
 
-// --- GPS & 地図機能 (改良版) ---
+// --- GPS & 地図機能 ---
 function toggleGPS() {
     if (watchId === null) startGPS(); else stopGPS();
 }
@@ -294,19 +298,12 @@ function startGPS() {
     display.style.display = 'block'; 
     status.innerText = "GPS信号を探しています...";
     
-    // 地図エリアを表示
     mapContainer.style.display = 'block';
-    
-    // 地図の初期化 (初回のみ)
     if (map === null) {
-        map = L.map('live-map').setView([43.064, 141.346], 13); // 札幌中心
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
+        map = L.map('live-map').setView([43.064, 141.346], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
         marker = L.marker([43.064, 141.346]).addTo(map);
     }
-    
-    // 地図の再描画対策 (display:noneから復帰した時用)
     setTimeout(() => { map.invalidateSize(); }, 100);
 
     watchId = navigator.geolocation.watchPosition(
@@ -314,13 +311,9 @@ function startGPS() {
             const speedKmh = pos.coords.speed ? (pos.coords.speed * 3.6).toFixed(0) : 0;
             document.getElementById('current-speed').innerText = speedKmh;
             status.innerText = `精度: ±${Math.round(pos.coords.accuracy)}m`;
-            
-            // 地図更新
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
+            const lat = pos.coords.latitude; const lng = pos.coords.longitude;
             const newLatLng = new L.LatLng(lat, lng);
-            marker.setLatLng(newLatLng);
-            map.setView(newLatLng); // 中心を追従
+            marker.setLatLng(newLatLng); map.setView(newLatLng);
         },
         (err) => { console.error(err); status.innerText = "GPS取得失敗"; },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -331,10 +324,8 @@ function stopGPS() {
     const btn = document.getElementById('gps-btn'); 
     const display = document.getElementById('speed-display');
     const mapContainer = document.getElementById('live-map-container');
-
     if(btn) { btn.classList.remove('active'); btn.innerHTML = '<i class="fas fa-tachometer-alt"></i> 速度計測＆マップ表示'; }
     if(display) { display.style.display = 'none'; }
-    // 地図は非表示にするがインスタンスは残す
     if(mapContainer) mapContainer.style.display = 'none';
 }
 
@@ -375,14 +366,7 @@ function switchTab(tabId) {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     if(typeof event !== 'undefined' && event.currentTarget) event.currentTarget.classList.add('active');
 }
-function filterSpots() {
-    const input = document.getElementById('searchBox'); if (!input) return;
-    const filter = input.value.toUpperCase(); const li = document.getElementById('spotList').getElementsByTagName('li');
-    for (let i = 0; i < li.length; i++) {
-        const text = li[i].textContent || li[i].innerText;
-        li[i].style.display = (text.toUpperCase().indexOf(filter) > -1) ? "" : "none";
-    }
-}
+
 document.addEventListener('DOMContentLoaded', function() {
     loadSchedule();
     setInterval(() => {
