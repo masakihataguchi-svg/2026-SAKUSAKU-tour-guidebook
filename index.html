@@ -47,6 +47,9 @@
                         <p class="tap-hint"><i class="fas fa-search-plus"></i> タップして拡大</p>
                     </div>
 
+                    <div id="memo-btn-container" style="display:none; margin-top:10px;">
+                        </div>
+
                     <div class="countdown-area">
                         <p id="time-remaining">--:--</p>
                     </div>
@@ -147,7 +150,7 @@
 
             <div class="info-block" style="background:white; color:#333; border:1px solid #ddd; margin-top:15px;">
                 <h3><i class="fas fa-info-circle"></i> アプリ情報</h3>
-                <p>Version 3.0 (WakeLock & Calendar)</p>
+                <p>Version 3.1 (Memo Function)</p>
                 <p style="font-size:0.8em; color:#999;">Snow icon made by Freepik</p>
             </div>
         </div>
@@ -160,6 +163,18 @@
             <img class="modal-content" id="modal-img">
         </div>
         <div id="caption"></div>
+    </div>
+
+    <div id="memo-modal" class="modal" onclick="closeMemoModal()">
+        <div class="modal-content-wrapper" style="display:flex; justify-content:center; align-items:center;">
+            <div style="background:white; padding:25px; border-radius:12px; max-width:85%; width:400px; color:#333; text-align:left; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
+                <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px; color:#0055a4;">
+                    <i class="fas fa-sticky-note"></i> メモ
+                </h3>
+                <p id="memo-text" style="white-space: pre-wrap; line-height:1.6; font-size:1.1em;"></p>
+                <button onclick="closeMemoModal()" style="margin-top:20px; width:100%; padding:12px; background:#0055a4; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">閉じる</button>
+            </div>
+        </div>
     </div>
 
     <nav class="bottom-nav">
