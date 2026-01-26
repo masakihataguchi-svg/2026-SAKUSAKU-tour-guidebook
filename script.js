@@ -6,11 +6,11 @@ let watchId = null;
 let map = null;      
 let marker = null;   
 let notifiedList = JSON.parse(localStorage.getItem('notifiedList')) || [];
-let wakeLock = null; // 常時表示(Wake Lock)用の変数
+let wakeLock = null;
 
 // --- 機能0: データ読み込み ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: カレンダー＆常時表示対応版★");
+    console.log("★最新版JS読み込み成功: メモ機能追加版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -58,8 +58,10 @@ async function loadSchedule() {
             const images   = parseMulti(columns[tIdx + 5], columns[tIdx + 6]);
             const notifyTime = columns[tIdx + 7] ? columns[tIdx + 7].trim() : "";
             const notifyMsg  = columns[tIdx + 8] ? columns[tIdx + 8].trim() : "";
+            // ★追加: メモ (L列 = tIdx + 9)
+            const memo       = columns[tIdx + 9] ? columns[tIdx + 9].trim() : "";
 
-            return { time, title, detail, webLinks, images, mode: modeRaw, statusText, notifyTime, notifyMsg };
+            return { time, title, detail, webLinks, images, mode: modeRaw, statusText, notifyTime, notifyMsg, memo };
         }).filter(item => item !== null);
 
         const now = new Date();
@@ -78,7 +80,7 @@ async function loadSchedule() {
     }
 }
 
-// --- 機能1: 日程表リスト (カレンダー登録ボタン付き) ---
+// --- 機能1: 日程表リスト ---
 function renderScheduleList() {
     const container = document.querySelector('#schedule .timeline');
     if (!container || scheduleData.length === 0) return;
@@ -124,7 +126,6 @@ function renderScheduleList() {
         let linkIcon = "";
         if (item.webLinks.length > 0) linkIcon = ` <i class="fas fa-external-link-alt" style="color:#0055a4; margin-left:5px; font-size:0.8em;"></i>`;
         
-        // ★Googleカレンダー追加アイコン
         let calendarIcon = "";
         if (item.notifyTime) {
             const gCalLink = generateGoogleCalendarLink(item.title, item.time, item.detail);
@@ -142,13 +143,10 @@ function renderScheduleList() {
     });
 }
 
-// ★Googleカレンダー用URL生成
 function generateGoogleCalendarLink(title, startTimeStr, detail) {
     const startDate = new Date(startTimeStr.replace(/\//g, '-'));
     if (isNaN(startDate.getTime())) return "#";
-
-    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1時間後
-
+    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
     const formatTime = (date) => {
         return date.getFullYear() +
             ('0' + (date.getMonth() + 1)).slice(-2) +
@@ -156,16 +154,14 @@ function generateGoogleCalendarLink(title, startTimeStr, detail) {
             ('0' + date.getHours()).slice(-2) +
             ('0' + date.getMinutes()).slice(-2) + '00';
     };
-
     const start = formatTime(startDate);
     const end = formatTime(endDate);
     const text = encodeURIComponent("【北海道旅】" + title);
     const details = encodeURIComponent(detail + "\n\nfrom SAKUSAKU 2026 App");
-    
     return `https://www.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${start}/${end}&details=${details}`;
 }
 
-// --- 機能2: タイムキーパー ---
+// --- 機能2: タイムキーパー (メモ対応) ---
 function updateTimeKeeper() {
     if (scheduleData.length === 0) return;
     const item = scheduleData[displayIndex];
@@ -186,10 +182,12 @@ function updateTimeKeeper() {
     const imageContainer = document.getElementById('image-container');
     const mediaContent = document.getElementById('media-content');
     const speedSection = document.getElementById('speedometer-section');
+    const memoContainer = document.getElementById('memo-btn-container'); // ★
 
     webContainer.style.display = "none";
     imageContainer.style.display = "none";
-    webContainer.innerHTML = ""; mediaContent.innerHTML = ""; 
+    memoContainer.style.display = "none"; // 初期は非表示
+    webContainer.innerHTML = ""; mediaContent.innerHTML = ""; memoContainer.innerHTML = "";
     speedSection.style.display = "none";
 
     if (diffMs < 0) {
@@ -205,6 +203,19 @@ function updateTimeKeeper() {
     nextEventDisplay.innerHTML = `<span class="event-time">${timeString}</span><span class="event-title">${item.title}</span>`;
     nextDetailDisplay.innerText = item.detail || "";
     cardCounter.innerText = `${displayIndex + 1} / ${scheduleData.length}`;
+
+    // ★メモボタン表示ロジック
+    if (item.memo && item.memo !== "") {
+        memoContainer.style.display = "block";
+        const memoBtn = document.createElement('button');
+        memoBtn.className = 'event-link-btn'; // 既存のスタイルを流用
+        memoBtn.style.width = "100%";
+        memoBtn.style.textAlign = "center";
+        memoBtn.style.marginTop = "10px";
+        memoBtn.innerHTML = `<i class="fas fa-sticky-note"></i> メモを見る`;
+        memoBtn.onclick = () => openMemoModal(item.memo);
+        memoContainer.appendChild(memoBtn);
+    }
 
     const movingModes = ['moving', 'walking', 'driving', 'railway', 'plane'];
     const isMoving = movingModes.some(m => item.mode.includes(m));
@@ -243,6 +254,15 @@ function updateTimeKeeper() {
     document.querySelector('.right-arrow').style.display = (displayIndex === scheduleData.length - 1) ? 'none' : 'block';
 }
 
+// ★メモ用モーダル操作
+function openMemoModal(text) {
+    document.getElementById('memo-text').innerText = text;
+    document.getElementById('memo-modal').style.display = 'block';
+}
+function closeMemoModal() {
+    document.getElementById('memo-modal').style.display = 'none';
+}
+
 function renderWebLinks(item, container, defaultLabel) {
     if (item.webLinks && item.webLinks.length > 0) {
         container.style.display = "block";
@@ -272,40 +292,26 @@ function renderImages(item, container, contentArea, defaultLabel) {
     }
 }
 
-// --- 機能6: 通知システム (30分猶予＆ログ付き) ---
+// --- 通知・WakeLock・GPS・共通 (変更なし) ---
 function checkAndNotify() {
-    if (Notification.permission !== "granted") {
-        console.log("🔔 通知チェック: 権限なし"); return;
-    }
+    if (Notification.permission !== "granted") { console.log("🔔 通知チェック: 権限なし"); return; }
     const now = new Date();
-    // console.log(`🔔 通知チェック: ${now.toLocaleString()}`); // ログ多すぎる場合はコメントアウト
-
     scheduleData.forEach(item => {
         if (!item.notifyTime || !item.notifyMsg) return;
-
         let targetTime = new Date(item.notifyTime);
         if (isNaN(targetTime.getTime())) targetTime = new Date(item.notifyTime.replace(/\//g, '-'));
         if (isNaN(targetTime.getTime())) return;
-
         const diff = now.getTime() - targetTime.getTime();
         const notifyKey = item.notifyTime + "_" + item.notifyMsg;
-
-        // 30分(1800000ms)以内の遅れなら通知
         if (diff >= 0 && diff < 1800000) {
             if (!notifiedList.includes(notifyKey)) {
                 console.log("🚀 通知実行:", item.notifyMsg);
-                new Notification("SAKUSAKU 2026", {
-                    body: item.notifyMsg,
-                    icon: "https://cdn-icons-png.flaticon.com/512/64/64572.png",
-                    tag: notifyKey
-                });
-                notifiedList.push(notifyKey);
-                localStorage.setItem('notifiedList', JSON.stringify(notifiedList));
+                new Notification("SAKUSAKU 2026", { body: item.notifyMsg, icon: "https://cdn-icons-png.flaticon.com/512/64/64572.png", tag: notifyKey });
+                notifiedList.push(notifyKey); localStorage.setItem('notifiedList', JSON.stringify(notifiedList));
             }
         }
     });
 }
-
 function requestNotificationPermission() {
     if (!("Notification" in window)) { alert("非対応ブラウザです"); return; }
     if (Notification.permission === "granted") { alert("通知は既に許可されています"); checkNotificationPermission(); return; }
@@ -326,56 +332,27 @@ function checkNotificationPermission() {
         statusText.innerText = "通知設定: ブロックされています"; statusText.style.color = "#ff8888";
     } else { statusText.innerText = "通知設定: 未設定"; }
 }
-
-// --- 機能7: 常時表示 (Wake Lock) ---
 async function toggleWakeLock() {
     const btn = document.getElementById('wakelock-btn');
-    
     if ('wakeLock' in navigator) {
         if (wakeLock === null) {
-            // ONにする
             try {
                 wakeLock = await navigator.wakeLock.request('screen');
                 btn.innerHTML = '<i class="fas fa-lightbulb"></i> 常時表示: ON';
-                btn.style.background = "#e67e22"; // オレンジ
-                btn.style.fontWeight = "bold";
-                console.log('Wake Lock active');
-                
-                wakeLock.addEventListener('release', () => {
-                    console.log('Wake Lock released');
-                });
-            } catch (err) {
-                alert("常時表示機能のエラー: " + err.message);
-            }
+                btn.style.background = "#e67e22"; btn.style.fontWeight = "bold";
+                wakeLock.addEventListener('release', () => {});
+            } catch (err) { alert("常時表示機能のエラー: " + err.message); }
         } else {
-            // OFFにする
-            wakeLock.release();
-            wakeLock = null;
-            btn.innerHTML = '<i class="fas fa-lightbulb"></i> 常時表示: OFF';
-            btn.style.background = "#7f8c8d";
-            console.log('Wake Lock disabled');
+            wakeLock.release(); wakeLock = null;
+            btn.innerHTML = '<i class="fas fa-lightbulb"></i> 常時表示: OFF'; btn.style.background = "#7f8c8d";
         }
-    } else {
-        alert("お使いのブラウザは常時表示に対応していません。");
-    }
+    } else { alert("お使いのブラウザは常時表示に対応していません。"); }
 }
-
-// --- GPS & 地図機能 ---
-function toggleGPS() {
-    if (watchId === null) startGPS(); else stopGPS();
-}
+function toggleGPS() { if (watchId === null) startGPS(); else stopGPS(); }
 function startGPS() {
     if (!navigator.geolocation) { alert("GPS非対応です"); return; }
-    const btn = document.getElementById('gps-btn'); 
-    const display = document.getElementById('speed-display'); 
-    const status = document.getElementById('gps-status');
-    const mapContainer = document.getElementById('live-map-container');
-
-    btn.classList.add('active'); 
-    btn.innerHTML = '<i class="fas fa-stop"></i> 計測停止 (地図OFF)'; 
-    display.style.display = 'block'; 
-    status.innerText = "GPS信号を探しています...";
-    
+    const btn = document.getElementById('gps-btn'); const display = document.getElementById('speed-display'); const status = document.getElementById('gps-status'); const mapContainer = document.getElementById('live-map-container');
+    btn.classList.add('active'); btn.innerHTML = '<i class="fas fa-stop"></i> 計測停止 (地図OFF)'; display.style.display = 'block'; status.innerText = "GPS信号を探しています...";
     mapContainer.style.display = 'block';
     if (map === null) {
         map = L.map('live-map').setView([43.064, 141.346], 13);
@@ -383,31 +360,22 @@ function startGPS() {
         marker = L.marker([43.064, 141.346]).addTo(map);
     }
     setTimeout(() => { map.invalidateSize(); }, 100);
-
-    watchId = navigator.geolocation.watchPosition(
-        (pos) => {
+    watchId = navigator.geolocation.watchPosition((pos) => {
             const speedKmh = pos.coords.speed ? (pos.coords.speed * 3.6).toFixed(0) : 0;
             document.getElementById('current-speed').innerText = speedKmh;
             status.innerText = `精度: ±${Math.round(pos.coords.accuracy)}m`;
             const lat = pos.coords.latitude; const lng = pos.coords.longitude;
             const newLatLng = new L.LatLng(lat, lng);
             marker.setLatLng(newLatLng); map.setView(newLatLng);
-        },
-        (err) => { console.error(err); status.innerText = "GPS取得失敗"; },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
+        }, (err) => { console.error(err); status.innerText = "GPS取得失敗"; }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
 }
 function stopGPS() {
     if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-    const btn = document.getElementById('gps-btn'); 
-    const display = document.getElementById('speed-display');
-    const mapContainer = document.getElementById('live-map-container');
+    const btn = document.getElementById('gps-btn'); const display = document.getElementById('speed-display'); const mapContainer = document.getElementById('live-map-container');
     if(btn) { btn.classList.remove('active'); btn.innerHTML = '<i class="fas fa-tachometer-alt"></i> 速度計測＆マップ表示'; }
     if(display) { display.style.display = 'none'; }
     if(mapContainer) mapContainer.style.display = 'none';
 }
-
-// 共通
 function changeCard(dir) {
     const newIndex = displayIndex + dir;
     if (newIndex >= 0 && newIndex < scheduleData.length) {
@@ -417,25 +385,14 @@ function changeCard(dir) {
         updateTimeKeeper();
     }
 }
-function jumpToCard(index) {
-    displayIndex = index; isAutoMode = false;
-    switchTab('home'); updateTimeKeeper(); window.scrollTo({ top: 0, behavior: 'smooth' });
-}
+function jumpToCard(index) { displayIndex = index; isAutoMode = false; switchTab('home'); updateTimeKeeper(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function setupSwipe() {
     const swipeArea = document.getElementById('time-keeper'); let startX = 0; let endX = 0;
     swipeArea.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, { passive: true });
     swipeArea.addEventListener('touchmove', (e) => { endX = e.touches[0].clientX; }, { passive: true });
-    swipeArea.addEventListener('touchend', () => {
-        if (startX === 0 || endX === 0) return; const diff = startX - endX;
-        if (diff > 50) changeCard(1); else if (diff < -50) changeCard(-1);
-        startX = 0; endX = 0;
-    });
+    swipeArea.addEventListener('touchend', () => { if (startX === 0 || endX === 0) return; const diff = startX - endX; if (diff > 50) changeCard(1); else if (diff < -50) changeCard(-1); startX = 0; endX = 0; });
 }
-function openModal(src, caption) {
-    const modal = document.getElementById("image-modal");
-    document.getElementById("modal-img").src = src; document.getElementById("caption").innerText = caption || "";
-    modal.style.display = "block"; document.getElementById("modal-img").classList.remove("zoomed");
-}
+function openModal(src, caption) { const modal = document.getElementById("image-modal"); document.getElementById("modal-img").src = src; document.getElementById("caption").innerText = caption || ""; modal.style.display = "block"; document.getElementById("modal-img").classList.remove("zoomed"); }
 function closeModal() { document.getElementById("image-modal").style.display = "none"; }
 document.getElementById("modal-img").addEventListener('click', function(e) { e.stopPropagation(); this.classList.toggle("zoomed"); });
 function switchTab(tabId) {
@@ -444,43 +401,18 @@ function switchTab(tabId) {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     if(typeof event !== 'undefined' && event.currentTarget) event.currentTarget.classList.add('active');
 }
-
 document.addEventListener('DOMContentLoaded', function() {
     loadSchedule();
-    
-    // 定期チェック (1分ごと)
     setInterval(() => {
-        if (isAutoMode) {
-             const now = new Date();
-             const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime());
-             if (nextIdx !== -1 && nextIdx !== displayIndex) displayIndex = nextIdx;
-        }
-        updateTimeKeeper();
-        checkAndNotify();
+        if (isAutoMode) { const now = new Date(); const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime()); if (nextIdx !== -1 && nextIdx !== displayIndex) displayIndex = nextIdx; }
+        updateTimeKeeper(); checkAndNotify();
     }, 60000);
-
-    // アプリ復帰時の処理 (通知チェック & Wake Lock再取得)
     document.addEventListener("visibilitychange", async () => {
         if (document.visibilityState === "visible") {
-            console.log("👀 アプリ復帰");
-            const now = new Date();
-            const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime());
-            if (nextIdx !== -1) displayIndex = nextIdx;
-            
-            updateTimeKeeper();
-            checkAndNotify();
-
-            // Wake LockがONだった場合、再取得する
-            if (wakeLock !== null) {
-                try {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Wake Lock re-acquired');
-                } catch (err) {
-                    console.log('Re-acquire failed', err);
-                }
-            }
+            const now = new Date(); const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime()); if (nextIdx !== -1) displayIndex = nextIdx;
+            updateTimeKeeper(); checkAndNotify();
+            if (wakeLock !== null) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
         }
     });
-    
     setTimeout(checkAndNotify, 3000);
 });
