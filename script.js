@@ -411,12 +411,33 @@ function switchTab(tabId) {
 
 document.addEventListener('DOMContentLoaded', function() {
     loadSchedule();
+    
+    // 1. 定期チェック (アプリを開いている間、1分ごとにチェック)
     setInterval(() => {
         if (isAutoMode) {
-             const now = new Date(); const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime());
+             const now = new Date();
+             const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime());
              if (nextIdx !== -1 && nextIdx !== displayIndex) displayIndex = nextIdx;
         }
-        updateTimeKeeper(); checkAndNotify();
+        updateTimeKeeper();
+        checkAndNotify();
     }, 60000);
+
+    // 2. ★追加機能: アプリに戻ってきた瞬間に即チェック！
+    // これにより、スリープ復帰時や別アプリから戻った時にすぐ通知が来ます
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            console.log("👀 アプリがアクティブになりました。通知を再チェックします。");
+            // 時間表示を即更新
+            const now = new Date();
+            const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime());
+            if (nextIdx !== -1) displayIndex = nextIdx;
+            
+            updateTimeKeeper();
+            checkAndNotify(); // ここで即通知判定！
+        }
+    });
+    
+    // 起動時の初回チェック
     setTimeout(checkAndNotify, 3000);
 });
