@@ -265,18 +265,60 @@ function checkNotificationPermission() {
         statusText.innerText = "通知設定: ブロックされています"; statusText.style.color = "#ff8888";
     } else { statusText.innerText = "通知設定: 未設定"; }
 }
+// --- 機能6: 通知システム (デバッグ強化 & 猶予拡大版) ---
 function checkAndNotify() {
-    if (Notification.permission !== "granted") return;
+    // 許可がない場合はログを出して終了
+    if (Notification.permission !== "granted") {
+        console.log("🔔 通知チェック: 権限がありません (denied/default)");
+        return;
+    }
+
     const now = new Date();
+    console.log(`🔔 通知チェック開始: 現在時刻 ${now.toLocaleString()}`);
+
     scheduleData.forEach(item => {
+        // 通知設定がない項目はスキップ
         if (!item.notifyTime || !item.notifyMsg) return;
-        const targetTime = new Date(item.notifyTime);
+
+        // 日付変換 (ブラウザ互換性のため / を - に置換して試行)
+        let targetTime = new Date(item.notifyTime);
+        if (isNaN(targetTime.getTime())) {
+            // そのままでダメならハイフン形式に変換
+            targetTime = new Date(item.notifyTime.replace(/\//g, '-'));
+        }
+
+        // それでも日付が無効ならスキップ
+        if (isNaN(targetTime.getTime())) {
+            console.error("❌ 日付形式エラー:", item.notifyTime);
+            return;
+        }
+
         const diff = now.getTime() - targetTime.getTime();
-        if (diff >= 0 && diff < 60000) {
-            const notifyKey = item.notifyTime + item.notifyMsg;
+        const notifyKey = item.notifyTime + "_" + item.notifyMsg; // ユニークキー
+
+        // デバッグ用ログ (Macのコンソールで確認用)
+        // 予定より前なら diff はマイナス、過ぎていればプラス
+        console.log(`  Target: ${item.title} (${targetTime.toLocaleString()}) | 差分: ${(diff/1000).toFixed(1)}秒 | 済: ${notifiedList.includes(notifyKey)}`);
+
+        // ★修正ポイント: 猶予を1分(60000)から30分(1800000)に拡大
+        // 予定時刻を過ぎていて(diff >= 0)、かつ30分以内であれば通知する
+        if (diff >= 0 && diff < 1800000) {
+            
             if (!notifiedList.includes(notifyKey)) {
-                new Notification("SAKUSAKU 2026", { body: item.notifyMsg, icon: "https://cdn-icons-png.flaticon.com/512/64/64572.png" });
-                notifiedList.push(notifyKey); localStorage.setItem('notifiedList', JSON.stringify(notifiedList));
+                console.log("  🚀 通知発射！:", item.notifyMsg);
+                
+                // 通知実行
+                new Notification("SAKUSAKU 2026", {
+                    body: item.notifyMsg,
+                    icon: "https://cdn-icons-png.flaticon.com/512/64/64572.png",
+                    tag: notifyKey // 重複防止タグ
+                });
+
+                // リストに追加して保存
+                notifiedList.push(notifyKey);
+                localStorage.setItem('notifiedList', JSON.stringify(notifiedList));
+            } else {
+                console.log("  info: 既に通知済みです");
             }
         }
     });
