@@ -135,9 +135,19 @@
                 </div>
             </div>
 
-            <div class="info-block" style="background:white; color:#333; border:1px solid #ddd;">
+            <div class="info-block" style="background:white; color:#333; border:1px solid #ddd; margin-top:15px;">
+                <h3><i class="fas fa-power-off"></i> 画面表示設定</h3>
+                <p style="font-size:0.9em; color:#666;">ONにするとスリープしなくなります。<br>(バッテリー消費に注意)</p>
+                <div style="margin-top:10px; text-align:center;">
+                    <button id="wakelock-btn" onclick="toggleWakeLock()" class="upload-btn" style="background:#7f8c8d;">
+                        <i class="fas fa-lightbulb"></i> 常時表示: OFF
+                    </button>
+                </div>
+            </div>
+
+            <div class="info-block" style="background:white; color:#333; border:1px solid #ddd; margin-top:15px;">
                 <h3><i class="fas fa-info-circle"></i> アプリ情報</h3>
-                <p>Version 2.5 (Drive Embed)</p>
+                <p>Version 3.0 (WakeLock & Calendar)</p>
                 <p style="font-size:0.8em; color:#999;">Snow icon made by Freepik</p>
             </div>
         </div>
