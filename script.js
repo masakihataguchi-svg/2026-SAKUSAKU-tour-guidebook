@@ -6,10 +6,11 @@ let watchId = null;
 let map = null;      
 let marker = null;   
 let notifiedList = JSON.parse(localStorage.getItem('notifiedList')) || [];
+let wakeLock = null; // 常時表示(Wake Lock)用の変数
 
 // --- 機能0: データ読み込み ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: アルバム＆書類対応版★");
+    console.log("★最新版JS読み込み成功: カレンダー＆常時表示対応版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -77,7 +78,7 @@ async function loadSchedule() {
     }
 }
 
-// --- 機能1: 日程表リスト ---
+// --- 機能1: 日程表リスト (カレンダー登録ボタン付き) ---
 function renderScheduleList() {
     const container = document.querySelector('#schedule .timeline');
     if (!container || scheduleData.length === 0) return;
@@ -122,16 +123,46 @@ function renderScheduleList() {
 
         let linkIcon = "";
         if (item.webLinks.length > 0) linkIcon = ` <i class="fas fa-external-link-alt" style="color:#0055a4; margin-left:5px; font-size:0.8em;"></i>`;
-        let bellIcon = "";
-        if (item.notifyTime) bellIcon = ` <i class="fas fa-bell" style="color:#ffd700; margin-left:5px; font-size:0.8em;"></i>`;
+        
+        // ★Googleカレンダー追加アイコン
+        let calendarIcon = "";
+        if (item.notifyTime) {
+            const gCalLink = generateGoogleCalendarLink(item.title, item.time, item.detail);
+            calendarIcon = ` <a href="${gCalLink}" target="_blank" style="color:#e67e22; margin-left:8px; font-size:0.9em;" onclick="event.stopPropagation();">
+                                <i class="far fa-calendar-plus"></i>
+                             </a>`;
+        }
 
         li.innerHTML = `<span class="time">${timePart}</span> 
                         <span style="color:${iconColor}; width:20px; display:inline-block; text-align:center; margin-right:5px;">${statusIcon}</span>
-                        ${item.title}${linkIcon}${bellIcon}`;
+                        ${item.title}${linkIcon}${calendarIcon}`;
         li.onclick = () => jumpToCard(index);
         li.style.cursor = "pointer";
         ul.appendChild(li);
     });
+}
+
+// ★Googleカレンダー用URL生成
+function generateGoogleCalendarLink(title, startTimeStr, detail) {
+    const startDate = new Date(startTimeStr.replace(/\//g, '-'));
+    if (isNaN(startDate.getTime())) return "#";
+
+    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1時間後
+
+    const formatTime = (date) => {
+        return date.getFullYear() +
+            ('0' + (date.getMonth() + 1)).slice(-2) +
+            ('0' + date.getDate()).slice(-2) + 'T' +
+            ('0' + date.getHours()).slice(-2) +
+            ('0' + date.getMinutes()).slice(-2) + '00';
+    };
+
+    const start = formatTime(startDate);
+    const end = formatTime(endDate);
+    const text = encodeURIComponent("【北海道旅】" + title);
+    const details = encodeURIComponent(detail + "\n\nfrom SAKUSAKU 2026 App");
+    
+    return `https://www.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${start}/${end}&details=${details}`;
 }
 
 // --- 機能2: タイムキーパー ---
@@ -162,14 +193,11 @@ function updateTimeKeeper() {
     speedSection.style.display = "none";
 
     if (diffMs < 0) {
-        statusLabel.innerText = "FINISHED"; 
-        statusLabel.style.color = "#ccc";
+        statusLabel.innerText = "FINISHED"; statusLabel.style.color = "#ccc";
     } else if (upcomingIndex !== -1 && displayIndex === upcomingIndex) {
-        statusLabel.innerText = "CURRENT EVENT"; 
-        statusLabel.style.color = "white";
+        statusLabel.innerText = "CURRENT EVENT"; statusLabel.style.color = "white";
     } else {
-        statusLabel.innerText = "FUTURE EVENT"; 
-        statusLabel.style.color = "#88ccff";
+        statusLabel.innerText = "FUTURE EVENT"; statusLabel.style.color = "#88ccff";
     }
 
     statusDesc.innerText = item.statusText || "";
@@ -244,7 +272,40 @@ function renderImages(item, container, contentArea, defaultLabel) {
     }
 }
 
-// --- 機能6: 通知システム ---
+// --- 機能6: 通知システム (30分猶予＆ログ付き) ---
+function checkAndNotify() {
+    if (Notification.permission !== "granted") {
+        console.log("🔔 通知チェック: 権限なし"); return;
+    }
+    const now = new Date();
+    // console.log(`🔔 通知チェック: ${now.toLocaleString()}`); // ログ多すぎる場合はコメントアウト
+
+    scheduleData.forEach(item => {
+        if (!item.notifyTime || !item.notifyMsg) return;
+
+        let targetTime = new Date(item.notifyTime);
+        if (isNaN(targetTime.getTime())) targetTime = new Date(item.notifyTime.replace(/\//g, '-'));
+        if (isNaN(targetTime.getTime())) return;
+
+        const diff = now.getTime() - targetTime.getTime();
+        const notifyKey = item.notifyTime + "_" + item.notifyMsg;
+
+        // 30分(1800000ms)以内の遅れなら通知
+        if (diff >= 0 && diff < 1800000) {
+            if (!notifiedList.includes(notifyKey)) {
+                console.log("🚀 通知実行:", item.notifyMsg);
+                new Notification("SAKUSAKU 2026", {
+                    body: item.notifyMsg,
+                    icon: "https://cdn-icons-png.flaticon.com/512/64/64572.png",
+                    tag: notifyKey
+                });
+                notifiedList.push(notifyKey);
+                localStorage.setItem('notifiedList', JSON.stringify(notifiedList));
+            }
+        }
+    });
+}
+
 function requestNotificationPermission() {
     if (!("Notification" in window)) { alert("非対応ブラウザです"); return; }
     if (Notification.permission === "granted") { alert("通知は既に許可されています"); checkNotificationPermission(); return; }
@@ -265,63 +326,38 @@ function checkNotificationPermission() {
         statusText.innerText = "通知設定: ブロックされています"; statusText.style.color = "#ff8888";
     } else { statusText.innerText = "通知設定: 未設定"; }
 }
-// --- 機能6: 通知システム (デバッグ強化 & 猶予拡大版) ---
-function checkAndNotify() {
-    // 許可がない場合はログを出して終了
-    if (Notification.permission !== "granted") {
-        console.log("🔔 通知チェック: 権限がありません (denied/default)");
-        return;
-    }
 
-    const now = new Date();
-    console.log(`🔔 通知チェック開始: 現在時刻 ${now.toLocaleString()}`);
-
-    scheduleData.forEach(item => {
-        // 通知設定がない項目はスキップ
-        if (!item.notifyTime || !item.notifyMsg) return;
-
-        // 日付変換 (ブラウザ互換性のため / を - に置換して試行)
-        let targetTime = new Date(item.notifyTime);
-        if (isNaN(targetTime.getTime())) {
-            // そのままでダメならハイフン形式に変換
-            targetTime = new Date(item.notifyTime.replace(/\//g, '-'));
-        }
-
-        // それでも日付が無効ならスキップ
-        if (isNaN(targetTime.getTime())) {
-            console.error("❌ 日付形式エラー:", item.notifyTime);
-            return;
-        }
-
-        const diff = now.getTime() - targetTime.getTime();
-        const notifyKey = item.notifyTime + "_" + item.notifyMsg; // ユニークキー
-
-        // デバッグ用ログ (Macのコンソールで確認用)
-        // 予定より前なら diff はマイナス、過ぎていればプラス
-        console.log(`  Target: ${item.title} (${targetTime.toLocaleString()}) | 差分: ${(diff/1000).toFixed(1)}秒 | 済: ${notifiedList.includes(notifyKey)}`);
-
-        // ★修正ポイント: 猶予を1分(60000)から30分(1800000)に拡大
-        // 予定時刻を過ぎていて(diff >= 0)、かつ30分以内であれば通知する
-        if (diff >= 0 && diff < 1800000) {
-            
-            if (!notifiedList.includes(notifyKey)) {
-                console.log("  🚀 通知発射！:", item.notifyMsg);
+// --- 機能7: 常時表示 (Wake Lock) ---
+async function toggleWakeLock() {
+    const btn = document.getElementById('wakelock-btn');
+    
+    if ('wakeLock' in navigator) {
+        if (wakeLock === null) {
+            // ONにする
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                btn.innerHTML = '<i class="fas fa-lightbulb"></i> 常時表示: ON';
+                btn.style.background = "#e67e22"; // オレンジ
+                btn.style.fontWeight = "bold";
+                console.log('Wake Lock active');
                 
-                // 通知実行
-                new Notification("SAKUSAKU 2026", {
-                    body: item.notifyMsg,
-                    icon: "https://cdn-icons-png.flaticon.com/512/64/64572.png",
-                    tag: notifyKey // 重複防止タグ
+                wakeLock.addEventListener('release', () => {
+                    console.log('Wake Lock released');
                 });
-
-                // リストに追加して保存
-                notifiedList.push(notifyKey);
-                localStorage.setItem('notifiedList', JSON.stringify(notifiedList));
-            } else {
-                console.log("  info: 既に通知済みです");
+            } catch (err) {
+                alert("常時表示機能のエラー: " + err.message);
             }
+        } else {
+            // OFFにする
+            wakeLock.release();
+            wakeLock = null;
+            btn.innerHTML = '<i class="fas fa-lightbulb"></i> 常時表示: OFF';
+            btn.style.background = "#7f8c8d";
+            console.log('Wake Lock disabled');
         }
-    });
+    } else {
+        alert("お使いのブラウザは常時表示に対応していません。");
+    }
 }
 
 // --- GPS & 地図機能 ---
@@ -412,7 +448,7 @@ function switchTab(tabId) {
 document.addEventListener('DOMContentLoaded', function() {
     loadSchedule();
     
-    // 1. 定期チェック (アプリを開いている間、1分ごとにチェック)
+    // 定期チェック (1分ごと)
     setInterval(() => {
         if (isAutoMode) {
              const now = new Date();
@@ -423,21 +459,28 @@ document.addEventListener('DOMContentLoaded', function() {
         checkAndNotify();
     }, 60000);
 
-    // 2. ★追加機能: アプリに戻ってきた瞬間に即チェック！
-    // これにより、スリープ復帰時や別アプリから戻った時にすぐ通知が来ます
-    document.addEventListener("visibilitychange", () => {
+    // アプリ復帰時の処理 (通知チェック & Wake Lock再取得)
+    document.addEventListener("visibilitychange", async () => {
         if (document.visibilityState === "visible") {
-            console.log("👀 アプリがアクティブになりました。通知を再チェックします。");
-            // 時間表示を即更新
+            console.log("👀 アプリ復帰");
             const now = new Date();
             const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime());
             if (nextIdx !== -1) displayIndex = nextIdx;
             
             updateTimeKeeper();
-            checkAndNotify(); // ここで即通知判定！
+            checkAndNotify();
+
+            // Wake LockがONだった場合、再取得する
+            if (wakeLock !== null) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock re-acquired');
+                } catch (err) {
+                    console.log('Re-acquire failed', err);
+                }
+            }
         }
     });
     
-    // 起動時の初回チェック
     setTimeout(checkAndNotify, 3000);
 });
