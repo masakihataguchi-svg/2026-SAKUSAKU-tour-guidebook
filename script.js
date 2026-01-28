@@ -10,7 +10,7 @@ let wakeLock = null;
 
 // --- 機能0: データ読み込み (スケジュール: config.jsonから取得) ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: シート分離対応版★");
+    console.log("★最新版JS読み込み成功: 関数不足修正版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -81,7 +81,7 @@ async function loadSchedule() {
 
 // --- 機能0-2: データ読み込み (観光メモ: 専用URLから取得) ---
 async function loadMemoLinks() {
-    // ★修正箇所: 新しい「メモ用スプレッドシート」のURL
+    // メモ用スプレッドシートのURL
     const memoSheetUrl = "https://docs.google.com/spreadsheets/d/1wPBjsbSexgUp9sCJ-tShQ3_ewq_WY-Tr2LSB59OJJBI/export?format=csv";
     
     try {
@@ -93,17 +93,13 @@ async function loadMemoLinks() {
         const container = document.getElementById('memo-list-container');
         container.innerHTML = "";
 
-        // 1行目はヘッダーなのでスキップ
         rows.slice(1).forEach(row => {
             if(!row || row.trim() === "") return;
-            
-            // CSVパース (簡易版)
             const cols = row.split(',');
-            // A列:日付, B列:メモ内容, C列:URL
             if(cols.length < 2) return;
 
-            const title = cols[1].replace(/"/g, '').trim(); // B列
-            const url = cols[2] ? cols[2].replace(/"/g, '').trim() : ""; // C列
+            const title = cols[1].replace(/"/g, '').trim(); 
+            const url = cols[2] ? cols[2].replace(/"/g, '').trim() : ""; 
 
             const div = document.createElement('div');
             div.className = "info-block";
@@ -118,11 +114,9 @@ async function loadMemoLinks() {
                             <i class="fas fa-external-link-alt"></i> 記事/サイトを見る
                          </a>`;
             }
-
             div.innerHTML = html;
             container.appendChild(div);
         });
-
     } catch (e) {
         console.error("メモ読み込み失敗", e);
         const container = document.getElementById('memo-list-container');
@@ -271,6 +265,7 @@ function updateTimeKeeper() {
 
     if (isMoving) {
         speedSection.style.display = "block";
+        // ★修正: ここで呼び出される関数を下に定義しました
         renderWebLinks(item, webContainer, "経路・マップ");
         renderImages(item, imageContainer, mediaContent, "観光ガイド・車窓");
     } else {
@@ -301,6 +296,37 @@ function updateTimeKeeper() {
     
     document.querySelector('.left-arrow').style.display = (displayIndex === 0) ? 'none' : 'block';
     document.querySelector('.right-arrow').style.display = (displayIndex === scheduleData.length - 1) ? 'none' : 'block';
+}
+
+// ★追加: これらが抜けていました
+function renderWebLinks(item, container, defaultLabel) {
+    if (item.webLinks && item.webLinks.length > 0) {
+        container.style.display = "block";
+        item.webLinks.forEach(link => {
+            const btn = document.createElement('a');
+            btn.className = 'event-link-btn'; btn.href = link.url; btn.target = "_blank"; btn.style.marginTop = "10px"; 
+            const btnText = link.desc || defaultLabel;
+            btn.innerHTML = `<i class="fas fa-external-link-alt"></i> ${btnText}`;
+            container.appendChild(btn);
+        });
+    }
+}
+
+function renderImages(item, container, contentArea, defaultLabel) {
+    if (item.images && item.images.length > 0) {
+        container.style.display = "block";
+        const descElem = document.getElementById('image-desc');
+        if(descElem) descElem.innerText = item.images[0].desc || defaultLabel;
+        item.images.forEach(img => {
+            const driveMatch = img.url.match(/\/d\/(.+?)\//);
+            let imgSrc = img.url;
+            if (driveMatch) imgSrc = `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=s4000`;
+            const imgTag = document.createElement('img');
+            imgTag.src = imgSrc; imgTag.className = 'event-image'; imgTag.alt = img.desc || "Event Image"; imgTag.style.marginBottom = "10px";
+            imgTag.onclick = () => openModal(imgSrc, img.desc || defaultLabel);
+            contentArea.appendChild(imgTag);
+        });
+    }
 }
 
 function openMemoModal(text) {
