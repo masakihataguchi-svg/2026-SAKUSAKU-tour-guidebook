@@ -8,9 +8,9 @@ let marker = null;
 let notifiedList = JSON.parse(localStorage.getItem('notifiedList')) || [];
 let wakeLock = null;
 
-// --- 機能0: データ読み込み (スケジュール) ---
+// --- 機能0: データ読み込み (スケジュール: config.jsonから取得) ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: 観光メモ対応版★");
+    console.log("★最新版JS読み込み成功: シート分離対応版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -79,11 +79,10 @@ async function loadSchedule() {
     }
 }
 
-// --- 機能0-2: データ読み込み (観光メモ) ---
+// --- 機能0-2: データ読み込み (観光メモ: 専用URLから取得) ---
 async function loadMemoLinks() {
-    // 観光メモ用スプレッドシートのCSVリンク
-    // ID: 1U0doeH2D3zpi1OtAA2FSuY6JcvRAkusRKHDmzvWgrSM
-    const memoSheetUrl = "https://docs.google.com/spreadsheets/d/1U0doeH2D3zpi1OtAA2FSuY6JcvRAkusRKHDmzvWgrSM/export?format=csv";
+    // ★修正箇所: 新しい「メモ用スプレッドシート」のURL
+    const memoSheetUrl = "https://docs.google.com/spreadsheets/d/1wPBjsbSexgUp9sCJ-tShQ3_ewq_WY-Tr2LSB59OJJBI/export?format=csv";
     
     try {
         const resp = await fetch(memoSheetUrl + "&t=" + new Date().getTime());
@@ -94,12 +93,13 @@ async function loadMemoLinks() {
         const container = document.getElementById('memo-list-container');
         container.innerHTML = "";
 
-        // 1行目はヘッダーなのでスキップ (slice(1))
+        // 1行目はヘッダーなのでスキップ
         rows.slice(1).forEach(row => {
             if(!row || row.trim() === "") return;
-            // CSVパース (簡易版: カンマ区切り)
-            // A列:日付(ID), B列:メモ内容, C列:URL
+            
+            // CSVパース (簡易版)
             const cols = row.split(',');
+            // A列:日付, B列:メモ内容, C列:URL
             if(cols.length < 2) return;
 
             const title = cols[1].replace(/"/g, '').trim(); // B列
@@ -125,7 +125,8 @@ async function loadMemoLinks() {
 
     } catch (e) {
         console.error("メモ読み込み失敗", e);
-        document.getElementById('memo-list-container').innerText = "読み込みに失敗しました";
+        const container = document.getElementById('memo-list-container');
+        container.innerHTML = `<p style="text-align:center; color:red;">読み込みエラー<br>(${e.message})</p>`;
     }
 }
 
@@ -421,7 +422,7 @@ function switchTab(tabId) {
 }
 document.addEventListener('DOMContentLoaded', function() {
     loadSchedule();
-    loadMemoLinks(); // ★追加
+    loadMemoLinks();
     setInterval(() => {
         if (isAutoMode) { const now = new Date(); const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime()); if (nextIdx !== -1 && nextIdx !== displayIndex) displayIndex = nextIdx; }
         updateTimeKeeper(); checkAndNotify();
