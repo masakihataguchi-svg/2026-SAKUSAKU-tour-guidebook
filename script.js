@@ -8,9 +8,9 @@ let marker = null;
 let notifiedList = JSON.parse(localStorage.getItem('notifiedList')) || [];
 let wakeLock = null;
 
-// --- 機能0: データ読み込み ---
+// --- 機能0: データ読み込み (スケジュール) ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: メモ機能追加版★");
+    console.log("★最新版JS読み込み成功: 観光メモ対応版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -58,7 +58,6 @@ async function loadSchedule() {
             const images   = parseMulti(columns[tIdx + 5], columns[tIdx + 6]);
             const notifyTime = columns[tIdx + 7] ? columns[tIdx + 7].trim() : "";
             const notifyMsg  = columns[tIdx + 8] ? columns[tIdx + 8].trim() : "";
-            // ★追加: メモ (L列 = tIdx + 9)
             const memo       = columns[tIdx + 9] ? columns[tIdx + 9].trim() : "";
 
             return { time, title, detail, webLinks, images, mode: modeRaw, statusText, notifyTime, notifyMsg, memo };
@@ -77,6 +76,56 @@ async function loadSchedule() {
     } catch (error) {
         console.error("読込エラー:", error);
         document.getElementById('next-event').innerText = "読込エラー";
+    }
+}
+
+// --- 機能0-2: データ読み込み (観光メモ) ---
+async function loadMemoLinks() {
+    // 観光メモ用スプレッドシートのCSVリンク
+    // ID: 1U0doeH2D3zpi1OtAA2FSuY6JcvRAkusRKHDmzvWgrSM
+    const memoSheetUrl = "https://docs.google.com/spreadsheets/d/1U0doeH2D3zpi1OtAA2FSuY6JcvRAkusRKHDmzvWgrSM/export?format=csv";
+    
+    try {
+        const resp = await fetch(memoSheetUrl + "&t=" + new Date().getTime());
+        if(!resp.ok) throw new Error("Memo Sheet Load Error");
+
+        const text = await resp.text();
+        const rows = text.trim().split('\n');
+        const container = document.getElementById('memo-list-container');
+        container.innerHTML = "";
+
+        // 1行目はヘッダーなのでスキップ (slice(1))
+        rows.slice(1).forEach(row => {
+            if(!row || row.trim() === "") return;
+            // CSVパース (簡易版: カンマ区切り)
+            // A列:日付(ID), B列:メモ内容, C列:URL
+            const cols = row.split(',');
+            if(cols.length < 2) return;
+
+            const title = cols[1].replace(/"/g, '').trim(); // B列
+            const url = cols[2] ? cols[2].replace(/"/g, '').trim() : ""; // C列
+
+            const div = document.createElement('div');
+            div.className = "info-block";
+            div.style.background = "white";
+            div.style.color = "#333";
+            div.style.border = "1px solid #ddd";
+            
+            let html = `<h3 style="margin:0 0 5px 0; font-size:1.0em; line-height:1.4;">${title}</h3>`;
+            
+            if (url.startsWith('http')) {
+                html += `<a href="${url}" target="_blank" class="event-link-btn" style="margin-top:8px; font-size:0.9em; padding:8px;">
+                            <i class="fas fa-external-link-alt"></i> 記事/サイトを見る
+                         </a>`;
+            }
+
+            div.innerHTML = html;
+            container.appendChild(div);
+        });
+
+    } catch (e) {
+        console.error("メモ読み込み失敗", e);
+        document.getElementById('memo-list-container').innerText = "読み込みに失敗しました";
     }
 }
 
@@ -161,7 +210,7 @@ function generateGoogleCalendarLink(title, startTimeStr, detail) {
     return `https://www.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${start}/${end}&details=${details}`;
 }
 
-// --- 機能2: タイムキーパー (メモ対応) ---
+// --- 機能2: タイムキーパー ---
 function updateTimeKeeper() {
     if (scheduleData.length === 0) return;
     const item = scheduleData[displayIndex];
@@ -182,11 +231,11 @@ function updateTimeKeeper() {
     const imageContainer = document.getElementById('image-container');
     const mediaContent = document.getElementById('media-content');
     const speedSection = document.getElementById('speedometer-section');
-    const memoContainer = document.getElementById('memo-btn-container'); // ★
+    const memoContainer = document.getElementById('memo-btn-container');
 
     webContainer.style.display = "none";
     imageContainer.style.display = "none";
-    memoContainer.style.display = "none"; // 初期は非表示
+    memoContainer.style.display = "none";
     webContainer.innerHTML = ""; mediaContent.innerHTML = ""; memoContainer.innerHTML = "";
     speedSection.style.display = "none";
 
@@ -204,11 +253,10 @@ function updateTimeKeeper() {
     nextDetailDisplay.innerText = item.detail || "";
     cardCounter.innerText = `${displayIndex + 1} / ${scheduleData.length}`;
 
-    // ★メモボタン表示ロジック
     if (item.memo && item.memo !== "") {
         memoContainer.style.display = "block";
         const memoBtn = document.createElement('button');
-        memoBtn.className = 'event-link-btn'; // 既存のスタイルを流用
+        memoBtn.className = 'event-link-btn';
         memoBtn.style.width = "100%";
         memoBtn.style.textAlign = "center";
         memoBtn.style.marginTop = "10px";
@@ -254,7 +302,6 @@ function updateTimeKeeper() {
     document.querySelector('.right-arrow').style.display = (displayIndex === scheduleData.length - 1) ? 'none' : 'block';
 }
 
-// ★メモ用モーダル操作
 function openMemoModal(text) {
     document.getElementById('memo-text').innerText = text;
     document.getElementById('memo-modal').style.display = 'block';
@@ -263,36 +310,7 @@ function closeMemoModal() {
     document.getElementById('memo-modal').style.display = 'none';
 }
 
-function renderWebLinks(item, container, defaultLabel) {
-    if (item.webLinks && item.webLinks.length > 0) {
-        container.style.display = "block";
-        item.webLinks.forEach(link => {
-            const btn = document.createElement('a');
-            btn.className = 'event-link-btn'; btn.href = link.url; btn.target = "_blank"; btn.style.marginTop = "10px"; 
-            const btnText = link.desc || defaultLabel;
-            btn.innerHTML = `<i class="fas fa-external-link-alt"></i> ${btnText}`;
-            container.appendChild(btn);
-        });
-    }
-}
-function renderImages(item, container, contentArea, defaultLabel) {
-    if (item.images && item.images.length > 0) {
-        container.style.display = "block";
-        const descElem = document.getElementById('image-desc');
-        if(descElem) descElem.innerText = item.images[0].desc || defaultLabel;
-        item.images.forEach(img => {
-            const driveMatch = img.url.match(/\/d\/(.+?)\//);
-            let imgSrc = img.url;
-            if (driveMatch) imgSrc = `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=s4000`;
-            const imgTag = document.createElement('img');
-            imgTag.src = imgSrc; imgTag.className = 'event-image'; imgTag.alt = img.desc || "Event Image"; imgTag.style.marginBottom = "10px";
-            imgTag.onclick = () => openModal(imgSrc, img.desc || defaultLabel);
-            contentArea.appendChild(imgTag);
-        });
-    }
-}
-
-// --- 通知・WakeLock・GPS・共通 (変更なし) ---
+// --- 共通 ---
 function checkAndNotify() {
     if (Notification.permission !== "granted") { console.log("🔔 通知チェック: 権限なし"); return; }
     const now = new Date();
@@ -403,6 +421,7 @@ function switchTab(tabId) {
 }
 document.addEventListener('DOMContentLoaded', function() {
     loadSchedule();
+    loadMemoLinks(); // ★追加
     setInterval(() => {
         if (isAutoMode) { const now = new Date(); const nextIdx = scheduleData.findIndex(item => new Date(item.time).getTime() > now.getTime()); if (nextIdx !== -1 && nextIdx !== displayIndex) displayIndex = nextIdx; }
         updateTimeKeeper(); checkAndNotify();
