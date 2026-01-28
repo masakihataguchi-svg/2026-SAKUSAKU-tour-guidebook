@@ -23,49 +23,28 @@
     <main id="content-area">
 
         <div id="home" class="tab-content active">
-            
             <div id="time-keeper" class="time-keeper-box" style="position: relative;">
-                
-                <div class="nav-arrow left-arrow" onclick="changeCard(-1)">
-                    <i class="fas fa-chevron-left"></i>
-                </div>
-
+                <div class="nav-arrow left-arrow" onclick="changeCard(-1)"><i class="fas fa-chevron-left"></i></div>
                 <div id="swipe-area" class="current-status">
                     <span id="status-label">CURRENT EVENT</span>
-                    
                     <div class="info-block schedule-block">
                         <p id="status-description">Loading...</p>
                         <h2 id="next-event"></h2>
                         <p id="next-detail" style="white-space: pre-wrap;"></p>
                     </div>
-                    
                     <div id="web-link-container" class="info-block web-block" style="display:none;"></div>
-
                     <div id="image-container" class="info-block image-block" style="display:none;">
                         <p id="image-desc" class="block-label"></p>
                         <div id="media-content"></div>
                         <p class="tap-hint"><i class="fas fa-search-plus"></i> タップして拡大</p>
                     </div>
-
-                    <div id="memo-btn-container" style="display:none; margin-top:10px;">
-                        </div>
-
-                    <div class="countdown-area">
-                        <p id="time-remaining">--:--</p>
-                    </div>
-                    
+                    <div id="memo-btn-container" style="display:none; margin-top:10px;"></div>
+                    <div class="countdown-area"><p id="time-remaining">--:--</p></div>
                     <p id="card-counter" style="font-size:0.8em; opacity:0.6; margin-top:10px;">-- / --</p>
                 </div> 
-
-                <div class="nav-arrow right-arrow" onclick="changeCard(1)">
-                    <i class="fas fa-chevron-right"></i>
-                </div>
-
+                <div class="nav-arrow right-arrow" onclick="changeCard(1)"><i class="fas fa-chevron-right"></i></div>
                 <div id="speedometer-section" style="display:none;">
-                    <button id="gps-btn" onclick="toggleGPS()">
-                        <i class="fas fa-tachometer-alt"></i> 速度計測＆マップ表示
-                    </button>
-                    
+                    <button id="gps-btn" onclick="toggleGPS()"><i class="fas fa-tachometer-alt"></i> 速度計測＆マップ表示</button>
                     <div id="speed-display" style="display:none;">
                         <span id="current-speed">0</span> <span class="unit">km/h</span>
                         <p id="gps-status">GPS待機中...</p>
@@ -74,9 +53,7 @@
                         </div>
                     </div>
                 </div>
-
             </div>
-            
             <div style="text-align:center; margin-top:50px; color:#aaa;">
                 <i class="fas fa-map-marked-alt" style="font-size: 3em; opacity:0.2;"></i>
                 <p>Have a nice trip!</p>
@@ -90,46 +67,39 @@
 
         <div id="album" class="tab-content">
             <h2><i class="fas fa-images"></i> 共有アルバム</h2>
-            
             <div class="info-block" style="background:white; color:#333; border:1px solid #ddd; text-align:center; padding:30px 20px;">
                 <i class="fas fa-camera-retro" style="font-size: 4em; color:#0055a4; margin-bottom:20px;"></i>
                 <h3>SAKUSAKU 2026</h3>
                 <p>旅の写真はここに集めよう！</p>
-                <p style="font-size:0.9em; color:#666; margin-bottom:25px;">Google Photos Shared Album</p>
-                
                 <a href="https://photos.app.goo.gl/quH9XzhodmfTwAGf7" target="_blank" class="upload-btn" style="background-color:#4285f4;">
                     <i class="fas fa-external-link-alt"></i> アルバムを開く
                 </a>
             </div>
-            
-            <p style="text-align:center; font-size:0.8em; color:#999; margin-top:20px;">
-                ※リンクをタップするとGoogleフォトアプリが開きます
-            </p>
         </div>
 
         <div id="documents" class="tab-content">
             <h2><i class="fas fa-folder-open"></i> 書類・ファイル</h2>
-            
             <div class="info-block" style="background:white; color:#333; border:1px solid #ddd; padding:0; overflow:hidden;">
                 <iframe src="https://drive.google.com/embeddedfolderview?id=1dssEtKPc1JpfAXrMGIAEisYd0O-8VrBl#list" style="width:100%; height:500px; border:none;"></iframe>
             </div>
-
             <p style="text-align:center; margin-top:20px;">
                 <a href="https://drive.google.com/drive/folders/1dssEtKPc1JpfAXrMGIAEisYd0O-8VrBl?usp=sharing" target="_blank" class="map-btn" style="background:#333;">
                     <i class="fab fa-google-drive"></i> アプリで直接開く
                 </a>
             </p>
-            <p style="text-align:center; font-size:0.8em; color:#999;">
-                ※表示されない場合は「アプリで直接開く」を押してください
-            </p>
+        </div>
+
+        <div id="memo-links" class="tab-content">
+            <h2><i class="fas fa-info-circle"></i> 観光・お土産メモ</h2>
+            <div id="memo-list-container">
+                <p style="text-align:center; color:#999;">読み込み中...</p>
+            </div>
         </div>
 
         <div id="settings" class="tab-content">
             <h2><i class="fas fa-cog"></i> 設定</h2>
-            
             <div class="info-block" style="background:white; color:#333; border:1px solid #ddd;">
                 <h3><i class="fas fa-bell"></i> 通知設定</h3>
-                <p style="font-size:0.9em; color:#666;">スケジュールの通知を受け取ります。</p>
                 <div style="margin-top:15px; text-align:center;">
                     <button id="notify-btn" onclick="requestNotificationPermission()" class="upload-btn" style="background:#0055a4;">
                         <i class="fas fa-bell"></i> 通知をONにする
@@ -137,21 +107,17 @@
                     <p id="notify-status" style="font-size:0.8em; margin-top:10px;">通知設定: 未設定</p>
                 </div>
             </div>
-
             <div class="info-block" style="background:white; color:#333; border:1px solid #ddd; margin-top:15px;">
                 <h3><i class="fas fa-power-off"></i> 画面表示設定</h3>
-                <p style="font-size:0.9em; color:#666;">ONにするとスリープしなくなります。<br>(バッテリー消費に注意)</p>
                 <div style="margin-top:10px; text-align:center;">
                     <button id="wakelock-btn" onclick="toggleWakeLock()" class="upload-btn" style="background:#7f8c8d;">
                         <i class="fas fa-lightbulb"></i> 常時表示: OFF
                     </button>
                 </div>
             </div>
-
             <div class="info-block" style="background:white; color:#333; border:1px solid #ddd; margin-top:15px;">
                 <h3><i class="fas fa-info-circle"></i> アプリ情報</h3>
-                <p>Version 3.1 (Memo Function)</p>
-                <p style="font-size:0.8em; color:#999;">Snow icon made by Freepik</p>
+                <p>Version 3.2 (Memo List)</p>
             </div>
         </div>
 
@@ -159,20 +125,15 @@
 
     <div id="image-modal" class="modal" onclick="closeModal()">
         <span class="close-modal">×</span>
-        <div class="modal-content-wrapper">
-            <img class="modal-content" id="modal-img">
-        </div>
+        <div class="modal-content-wrapper"><img class="modal-content" id="modal-img"></div>
         <div id="caption"></div>
     </div>
-
     <div id="memo-modal" class="modal" onclick="closeMemoModal()">
         <div class="modal-content-wrapper" style="display:flex; justify-content:center; align-items:center;">
-            <div style="background:white; padding:25px; border-radius:12px; max-width:85%; width:400px; color:#333; text-align:left; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
-                <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px; color:#0055a4;">
-                    <i class="fas fa-sticky-note"></i> メモ
-                </h3>
+            <div style="background:white; padding:25px; border-radius:12px; max-width:85%; width:400px; color:#333; text-align:left;" onclick="event.stopPropagation()">
+                <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px; color:#0055a4;"><i class="fas fa-sticky-note"></i> メモ</h3>
                 <p id="memo-text" style="white-space: pre-wrap; line-height:1.6; font-size:1.1em;"></p>
-                <button onclick="closeMemoModal()" style="margin-top:20px; width:100%; padding:12px; background:#0055a4; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">閉じる</button>
+                <button onclick="closeMemoModal()" style="margin-top:20px; width:100%; padding:12px; background:#0055a4; color:white; border:none; border-radius:6px; cursor:pointer;">閉じる</button>
             </div>
         </div>
     </div>
@@ -189,6 +150,9 @@
         </button>
         <button onclick="switchTab('documents')" class="nav-btn">
             <i class="fas fa-file-alt"></i><br>書類
+        </button>
+        <button onclick="switchTab('memo-links')" class="nav-btn">
+            <i class="fas fa-list-alt"></i><br>メモ
         </button>
         <button onclick="switchTab('settings')" class="nav-btn">
             <i class="fas fa-cog"></i><br>設定
