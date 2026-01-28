@@ -10,7 +10,7 @@ let wakeLock = null;
 
 // --- 機能0: データ読み込み (スケジュール: config.jsonから取得) ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: 関数不足修正版★");
+    console.log("★最新版JS読み込み成功: メモ日付分け対応版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -79,7 +79,7 @@ async function loadSchedule() {
     }
 }
 
-// --- 機能0-2: データ読み込み (観光メモ: 専用URLから取得) ---
+// --- 機能0-2: データ読み込み (観光メモ: 日付分け対応) ---
 async function loadMemoLinks() {
     // メモ用スプレッドシートのURL
     const memoSheetUrl = "https://docs.google.com/spreadsheets/d/1wPBjsbSexgUp9sCJ-tShQ3_ewq_WY-Tr2LSB59OJJBI/export?format=csv";
@@ -93,25 +93,42 @@ async function loadMemoLinks() {
         const container = document.getElementById('memo-list-container');
         container.innerHTML = "";
 
+        let currentDayStr = ""; // 日付変更検知用
+
+        // 1行目はヘッダーなのでスキップ
         rows.slice(1).forEach(row => {
             if(!row || row.trim() === "") return;
+            
+            // CSVパース (簡易版)
             const cols = row.split(',');
-            if(cols.length < 2) return;
+            // A列(0):日付, B列(1):No, C列(2):メモ, D列(3):URL
+            if(cols.length < 3) return; 
 
-            const title = cols[1].replace(/"/g, '').trim(); 
-            const url = cols[2] ? cols[2].replace(/"/g, '').trim() : ""; 
+            const dateStr = cols[0].trim();              // A列: 日付
+            const content = cols[2].replace(/"/g, '').trim(); // C列: メモ内容
+            const url = cols[3] ? cols[3].replace(/"/g, '').trim() : ""; // D列: URL
 
+            // 日付が変わったら見出しを表示
+            if (dateStr !== currentDayStr && dateStr !== "") {
+                currentDayStr = dateStr;
+                const dateHeader = document.createElement('h3');
+                dateHeader.style.cssText = "margin: 25px 0 10px 5px; color: #0055a4; border-bottom: 2px solid #0055a4; display: inline-block; padding-bottom: 3px; font-size: 1.1em;";
+                dateHeader.innerText = dateStr;
+                container.appendChild(dateHeader);
+            }
+
+            // メモカード作成
             const div = document.createElement('div');
             div.className = "info-block";
             div.style.background = "white";
             div.style.color = "#333";
             div.style.border = "1px solid #ddd";
             
-            let html = `<h3 style="margin:0 0 5px 0; font-size:1.0em; line-height:1.4;">${title}</h3>`;
+            let html = `<h4 style="margin:0 0 5px 0; font-size:1.0em; line-height:1.4;">${content}</h4>`;
             
             if (url.startsWith('http')) {
                 html += `<a href="${url}" target="_blank" class="event-link-btn" style="margin-top:8px; font-size:0.9em; padding:8px;">
-                            <i class="fas fa-external-link-alt"></i> 記事/サイトを見る
+                            <i class="fas fa-external-link-alt"></i> 詳しく見る
                          </a>`;
             }
             div.innerHTML = html;
@@ -265,7 +282,6 @@ function updateTimeKeeper() {
 
     if (isMoving) {
         speedSection.style.display = "block";
-        // ★修正: ここで呼び出される関数を下に定義しました
         renderWebLinks(item, webContainer, "経路・マップ");
         renderImages(item, imageContainer, mediaContent, "観光ガイド・車窓");
     } else {
@@ -298,7 +314,6 @@ function updateTimeKeeper() {
     document.querySelector('.right-arrow').style.display = (displayIndex === scheduleData.length - 1) ? 'none' : 'block';
 }
 
-// ★追加: これらが抜けていました
 function renderWebLinks(item, container, defaultLabel) {
     if (item.webLinks && item.webLinks.length > 0) {
         container.style.display = "block";
