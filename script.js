@@ -8,9 +8,9 @@ let marker = null;
 let notifiedList = JSON.parse(localStorage.getItem('notifiedList')) || [];
 let wakeLock = null;
 
-// --- 機能0: データ読み込み (スケジュール: config.jsonから取得) ---
+// --- 機能0: データ読み込み (スケジュール) ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: メモ日付分け対応版★");
+    console.log("★最新版JS読み込み成功: 複数画像対応版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -44,12 +44,19 @@ async function loadSchedule() {
             const title = columns[tIdx + 1] ? columns[tIdx + 1].trim() : "";
             const detail = columns[tIdx + 2] ? columns[tIdx + 2].trim() : "";
             
+            // ★変更: 改行(\n)ではなく、パイプ記号(|)で区切るように変更
             const parseMulti = (descRaw, urlRaw) => {
-                const descs = descRaw ? descRaw.split('\n').map(s => s.trim()) : [];
-                const urls = urlRaw ? urlRaw.split('\n').map(s => s.trim()) : [];
+                if (!urlRaw) return [];
+                
+                // パイプ記号 | で分割して配列にする
+                const descs = descRaw ? descRaw.split('|').map(s => s.trim()) : [];
+                const urls = urlRaw ? urlRaw.split('|').map(s => s.trim()) : [];
                 const results = [];
+                
                 urls.forEach((url, i) => {
-                    if(url.startsWith('http')) results.push({ url: url, desc: descs[i] || "" });
+                    if(url.startsWith('http')) {
+                        results.push({ url: url, desc: descs[i] || "" });
+                    }
                 });
                 return results;
             };
@@ -79,9 +86,8 @@ async function loadSchedule() {
     }
 }
 
-// --- 機能0-2: データ読み込み (観光メモ: 日付分け対応) ---
+// --- 機能0-2: データ読み込み (観光メモ) ---
 async function loadMemoLinks() {
-    // メモ用スプレッドシートのURL
     const memoSheetUrl = "https://docs.google.com/spreadsheets/d/1wPBjsbSexgUp9sCJ-tShQ3_ewq_WY-Tr2LSB59OJJBI/export?format=csv";
     
     try {
@@ -93,22 +99,17 @@ async function loadMemoLinks() {
         const container = document.getElementById('memo-list-container');
         container.innerHTML = "";
 
-        let currentDayStr = ""; // 日付変更検知用
+        let currentDayStr = "";
 
-        // 1行目はヘッダーなのでスキップ
         rows.slice(1).forEach(row => {
             if(!row || row.trim() === "") return;
-            
-            // CSVパース (簡易版)
             const cols = row.split(',');
-            // A列(0):日付, B列(1):No, C列(2):メモ, D列(3):URL
             if(cols.length < 3) return; 
 
-            const dateStr = cols[0].trim();              // A列: 日付
-            const content = cols[2].replace(/"/g, '').trim(); // C列: メモ内容
-            const url = cols[3] ? cols[3].replace(/"/g, '').trim() : ""; // D列: URL
+            const dateStr = cols[0].trim();
+            const content = cols[2].replace(/"/g, '').trim();
+            const url = cols[3] ? cols[3].replace(/"/g, '').trim() : "";
 
-            // 日付が変わったら見出しを表示
             if (dateStr !== currentDayStr && dateStr !== "") {
                 currentDayStr = dateStr;
                 const dateHeader = document.createElement('h3');
@@ -117,7 +118,6 @@ async function loadMemoLinks() {
                 container.appendChild(dateHeader);
             }
 
-            // メモカード作成
             const div = document.createElement('div');
             div.className = "info-block";
             div.style.background = "white";
@@ -337,7 +337,8 @@ function renderImages(item, container, contentArea, defaultLabel) {
             let imgSrc = img.url;
             if (driveMatch) imgSrc = `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=s4000`;
             const imgTag = document.createElement('img');
-            imgTag.src = imgSrc; imgTag.className = 'event-image'; imgTag.alt = img.desc || "Event Image"; imgTag.style.marginBottom = "10px";
+            imgTag.src = imgSrc; imgTag.className = 'event-image'; imgTag.alt = img.desc || "Event Image"; 
+            // margin-bottomはCSSで制御するためここでは削除
             imgTag.onclick = () => openModal(imgSrc, img.desc || defaultLabel);
             contentArea.appendChild(imgTag);
         });
