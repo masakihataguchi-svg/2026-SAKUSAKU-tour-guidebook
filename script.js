@@ -448,10 +448,42 @@ function changeCard(dir) {
 }
 function jumpToCard(index) { displayIndex = index; isAutoMode = false; switchTab('home'); updateTimeKeeper(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function setupSwipe() {
-    const swipeArea = document.getElementById('time-keeper'); let startX = 0; let endX = 0;
-    swipeArea.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, { passive: true });
-    swipeArea.addEventListener('touchmove', (e) => { endX = e.touches[0].clientX; }, { passive: true });
-    swipeArea.addEventListener('touchend', () => { if (startX === 0 || endX === 0) return; const diff = startX - endX; if (diff > 50) changeCard(1); else if (diff < -50) changeCard(-1); startX = 0; endX = 0; });
+    const swipeArea = document.getElementById('time-keeper'); 
+    let startX = 0; 
+    let startY = 0; // 縦方向も記録する
+    let endX = 0;
+    let endY = 0;
+
+    swipeArea.addEventListener('touchstart', (e) => { 
+        startX = e.touches[0].clientX; 
+        startY = e.touches[0].clientY; // Y座標も記録
+    }, { passive: true });
+
+    swipeArea.addEventListener('touchmove', (e) => { 
+        endX = e.touches[0].clientX; 
+        endY = e.touches[0].clientY; // Y座標も記録
+    }, { passive: true });
+
+    swipeArea.addEventListener('touchend', () => {
+        if (startX === 0 || endX === 0) return; 
+        
+        const diffX = startX - endX;
+        const diffY = startY - endY;
+
+        // ★重要: 縦スクロールの意図が強い場合は、カード切り替えをキャンセルする
+        // (縦の移動量の方が大きい、または横移動が小さすぎる場合)
+        if (Math.abs(diffY) > Math.abs(diffX)) {
+            // 縦スクロールとみなす -> 何もしない
+            startX = 0; endX = 0; startY = 0; endY = 0;
+            return;
+        }
+
+        // 横移動が十分大きければカード切り替え
+        if (diffX > 50) changeCard(1); 
+        else if (diffX < -50) changeCard(-1);
+        
+        startX = 0; endX = 0; startY = 0; endY = 0;
+    });
 }
 function openModal(src, caption) { const modal = document.getElementById("image-modal"); document.getElementById("modal-img").src = src; document.getElementById("caption").innerText = caption || ""; modal.style.display = "block"; document.getElementById("modal-img").classList.remove("zoomed"); }
 function closeModal() { document.getElementById("image-modal").style.display = "none"; }
