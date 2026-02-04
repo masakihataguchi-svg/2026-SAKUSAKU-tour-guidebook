@@ -151,27 +151,35 @@ header {
 }
 .event-link-btn:active { background-color: #eee; }
 
-/* 画像コンテナ (横スクロール対応) */
+/* 画像コンテナ (縦並びに戻す) */
 #media-content {
-    display: flex;              /* 横並びにする */
-    overflow-x: auto;           /* 横スクロールを許可 */
-    scroll-snap-type: x mandatory; /* スワイプでピタッと止まる */
-    gap: 10px;                  /* 画像同士の隙間 */
-    padding-bottom: 10px;       /* スクロールバー用の余白 */
-    -webkit-overflow-scrolling: touch;
+    display: block;             /* 横並び(flex)をやめる */
+    width: 100%;
+    margin-top: 10px;
 }
 
-/* 画像 (横スクロール用スタイル) */
+/* 画像 (縦並び用スタイル) */
 .event-image {
-    flex: 0 0 90%;              /* 横幅を画面の90%に */
-    width: 90%; 
+    width: 100%;                /* 常に横幅いっぱい */
     height: auto; 
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
     background-color: #f0f0f0;
-    scroll-snap-align: center;  /* 真ん中で止まる */
-    object-fit: cover;
+    margin-bottom: 15px;        /* 下に次の画像との隙間を作る */
+    display: block;
+}
+
+/* 最後の画像の下余白は消す */
+.event-image:last-child {
     margin-bottom: 0;
+}
+
+.tap-hint {
+    font-size: 0.8em; 
+    margin-top: 5px; 
+    margin-bottom: 0; 
+    opacity: 0.8;
+    text-align: center;         /* 中央寄せに戻す */
 }
 
 .tap-hint {
