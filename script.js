@@ -10,7 +10,7 @@ let wakeLock = null;
 
 // --- 機能0: データ読み込み (スケジュール) ---
 async function loadSchedule() {
-    console.log("★最新版JS読み込み成功: 複数画像対応版★");
+    console.log("★最新版JS読み込み成功: 完全CSV対応版★");
     try {
         const configResp = await fetch("config.json?t=" + new Date().getTime());
         if (!configResp.ok) throw new Error("config.jsonが見つかりません");
@@ -22,14 +22,16 @@ async function loadSchedule() {
         if (!csvResp.ok) throw new Error(`CSV読込エラー: ${csvResp.status}`);
         
         const text = await csvResp.text();
-        const rows = text.trim().split('\n');
         
-        scheduleData = rows.map(row => {
-            if (!row || row.trim() === "") return null;
-            const cleanRow = row.replace(/"/g, ''); 
-            const columns = cleanRow.split(',');
+        // ★改良: 高機能CSVパーサーを使用 (セル内改行に対応)
+        const rows = parseCSV(text);
+        
+        scheduleData = rows.map(columns => {
+            // 空行チェック
+            if (columns.length < 2) return null;
 
             let tIdx = 0;
+            // 2026が含まれる列を探す (Time列の特定)
             if (columns[2] && columns[2].indexOf('2026') > -1) {
                 tIdx = 2; 
             } else {
@@ -44,13 +46,15 @@ async function loadSchedule() {
             const title = columns[tIdx + 1] ? columns[tIdx + 1].trim() : "";
             const detail = columns[tIdx + 2] ? columns[tIdx + 2].trim() : "";
             
-            // ★変更: 改行(\n)ではなく、パイプ記号(|)で区切るように変更
+            // ★改良: パイプ(|) または 改行(\n) の両方で区切れるように正規表現を使用
             const parseMulti = (descRaw, urlRaw) => {
                 if (!urlRaw) return [];
                 
-                // パイプ記号 | で分割して配列にする
-                const descs = descRaw ? descRaw.split('|').map(s => s.trim()) : [];
-                const urls = urlRaw ? urlRaw.split('|').map(s => s.trim()) : [];
+                // 区切り文字: | または 改行
+                const regex = /\||\n/;
+                
+                const descs = descRaw ? descRaw.split(regex).map(s => s.trim()) : [];
+                const urls = urlRaw ? urlRaw.split(regex).map(s => s.trim()) : [];
                 const results = [];
                 
                 urls.forEach((url, i) => {
@@ -86,6 +90,44 @@ async function loadSchedule() {
     }
 }
 
+// ★追加: 本格的なCSVパーサー (セル内改行があっても壊れない)
+function parseCSV(text) {
+    const rows = [];
+    let currentRow = [];
+    let currentCell = '';
+    let insideQuote = false;
+
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const nextChar = text[i + 1];
+
+        if (char === '"') {
+            if (insideQuote && nextChar === '"') {
+                currentCell += '"'; // エスケープされた引用符
+                i++;
+            } else {
+                insideQuote = !insideQuote; // 引用符の開始/終了
+            }
+        } else if (char === ',' && !insideQuote) {
+            currentRow.push(currentCell);
+            currentCell = '';
+        } else if ((char === '\r' || char === '\n') && !insideQuote) {
+            if (char === '\r' && nextChar === '\n') i++; // CRLF対応
+            currentRow.push(currentCell);
+            rows.push(currentRow);
+            currentRow = [];
+            currentCell = '';
+        } else {
+            currentCell += char;
+        }
+    }
+    if (currentCell || currentRow.length > 0) {
+        currentRow.push(currentCell);
+        rows.push(currentRow);
+    }
+    return rows;
+}
+
 // --- 機能0-2: データ読み込み (観光メモ) ---
 async function loadMemoLinks() {
     const memoSheetUrl = "https://docs.google.com/spreadsheets/d/1wPBjsbSexgUp9sCJ-tShQ3_ewq_WY-Tr2LSB59OJJBI/export?format=csv";
@@ -95,20 +137,18 @@ async function loadMemoLinks() {
         if(!resp.ok) throw new Error("Memo Sheet Load Error");
 
         const text = await resp.text();
-        const rows = text.trim().split('\n');
+        const rows = parseCSV(text); // ここも新パーサーを使用
         const container = document.getElementById('memo-list-container');
         container.innerHTML = "";
 
         let currentDayStr = "";
 
-        rows.slice(1).forEach(row => {
-            if(!row || row.trim() === "") return;
-            const cols = row.split(',');
+        rows.slice(1).forEach(cols => {
             if(cols.length < 3) return; 
 
             const dateStr = cols[0].trim();
-            const content = cols[2].replace(/"/g, '').trim();
-            const url = cols[3] ? cols[3].replace(/"/g, '').trim() : "";
+            const content = cols[2].trim();
+            const url = cols[3] ? cols[3].trim() : "";
 
             if (dateStr !== currentDayStr && dateStr !== "") {
                 currentDayStr = dateStr;
@@ -327,20 +367,32 @@ function renderWebLinks(item, container, defaultLabel) {
     }
 }
 
+// ★改良: 画像ごとに説明文を表示
 function renderImages(item, container, contentArea, defaultLabel) {
     if (item.images && item.images.length > 0) {
         container.style.display = "block";
+        // 古いラベル表示（image-desc）は削除または非表示に
         const descElem = document.getElementById('image-desc');
-        if(descElem) descElem.innerText = item.images[0].desc || defaultLabel;
+        if(descElem) descElem.style.display = 'none';
+
         item.images.forEach(img => {
             const driveMatch = img.url.match(/\/d\/(.+?)\//);
             let imgSrc = img.url;
             if (driveMatch) imgSrc = `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=s4000`;
+            
             const imgTag = document.createElement('img');
             imgTag.src = imgSrc; imgTag.className = 'event-image'; imgTag.alt = img.desc || "Event Image"; 
-            // margin-bottomはCSSで制御するためここでは削除
             imgTag.onclick = () => openModal(imgSrc, img.desc || defaultLabel);
+            
             contentArea.appendChild(imgTag);
+
+            // ★画像説明文を追加
+            if (img.desc) {
+                const caption = document.createElement('p');
+                caption.className = 'image-caption';
+                caption.innerText = img.desc;
+                contentArea.appendChild(caption);
+            }
         });
     }
 }
@@ -448,40 +500,14 @@ function changeCard(dir) {
 }
 function jumpToCard(index) { displayIndex = index; isAutoMode = false; switchTab('home'); updateTimeKeeper(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function setupSwipe() {
-    const swipeArea = document.getElementById('time-keeper'); 
-    let startX = 0; 
-    let startY = 0; // 縦方向も記録する
-    let endX = 0;
-    let endY = 0;
-
-    swipeArea.addEventListener('touchstart', (e) => { 
-        startX = e.touches[0].clientX; 
-        startY = e.touches[0].clientY; // Y座標も記録
-    }, { passive: true });
-
-    swipeArea.addEventListener('touchmove', (e) => { 
-        endX = e.touches[0].clientX; 
-        endY = e.touches[0].clientY; // Y座標も記録
-    }, { passive: true });
-
-    swipeArea.addEventListener('touchend', () => {
+    const swipeArea = document.getElementById('time-keeper'); let startX = 0; let endX = 0; let startY = 0; let endY = 0;
+    swipeArea.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, { passive: true });
+    swipeArea.addEventListener('touchmove', (e) => { endX = e.touches[0].clientX; endY = e.touches[0].clientY; }, { passive: true });
+    swipeArea.addEventListener('touchend', () => { 
         if (startX === 0 || endX === 0) return; 
-        
-        const diffX = startX - endX;
-        const diffY = startY - endY;
-
-        // ★重要: 縦スクロールの意図が強い場合は、カード切り替えをキャンセルする
-        // (縦の移動量の方が大きい、または横移動が小さすぎる場合)
-        if (Math.abs(diffY) > Math.abs(diffX)) {
-            // 縦スクロールとみなす -> 何もしない
-            startX = 0; endX = 0; startY = 0; endY = 0;
-            return;
-        }
-
-        // 横移動が十分大きければカード切り替え
-        if (diffX > 50) changeCard(1); 
-        else if (diffX < -50) changeCard(-1);
-        
+        const diffX = startX - endX; const diffY = startY - endY;
+        if (Math.abs(diffY) > Math.abs(diffX)) { startX = 0; endX = 0; startY = 0; endY = 0; return; }
+        if (diffX > 50) changeCard(1); else if (diffX < -50) changeCard(-1); 
         startX = 0; endX = 0; startY = 0; endY = 0;
     });
 }
