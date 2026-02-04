@@ -387,14 +387,15 @@ header {
 
 .leaflet-control-attribution { font-size: 8px !important; }
 
-/* 画像ごとのキャプション */
+/* 画像ごとのキャプション (青背景用に見やすく調整) */
 .image-caption {
-    font-size: 0.85em;
-    color: #666;
-    margin-top: -10px; /* 画像との距離を詰める */
-    margin-bottom: 20px;
-    padding-left: 5px;
-    border-left: 3px solid #0055a4; /* 左に青い線を入れて見やすく */
-    line-height: 1.4;
-    font-weight: bold;
+    font-size: 0.9em;         /* 少しだけ大きく */
+    color: white;             /* 文字色を白に変更 */
+    margin-top: -12px;        /* 画像にもっと近づける */
+    margin-bottom: 25px;      /* 次の要素との間隔を空ける */
+    padding-left: 10px;       /* 左の余白を少し増やす */
+    border-left: 4px solid #ffd700; /* アクセント線を太めの黄色に変更 */
+    line-height: 1.5;         /* 行間を少し広げて読みやすく */
+    text-align: left;         /* 左寄せを明示 */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3); /* うっすら影をつけてさらに見やすく */
 }
